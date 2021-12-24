@@ -20,7 +20,7 @@ struct context {
   } roles;
 };
 
-#include "handle-create-a-channel.c" /* handle_create_a_channel() */
+#include "cee-create-a-channel.c" /* cee_create_a_channel() */
 
 void
 on_interaction_create(struct discord *client,
@@ -41,7 +41,7 @@ on_interaction_create(struct discord *client,
   switch (interaction->type) {
   case DISCORD_INTERACTION_MESSAGE_COMPONENT:
     if (0 == strcmp(interaction->data->custom_id, "create-a-channel"))
-      handle_create_a_channel(client, &params, interaction);
+      cee_create_a_channel(client, &params, interaction);
     break;
   default:
     log_error("%s (%d) is not dealt with",

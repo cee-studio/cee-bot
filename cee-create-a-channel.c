@@ -32,9 +32,9 @@ on_mentorship_channel_create(struct discord *client,
 }
 
 void
-handle_create_a_channel(struct discord *client,
-                        struct discord_interaction_response *params,
-                        const struct discord_interaction *interaction)
+cee_create_a_channel(struct discord *client,
+                     struct discord_interaction_response *params,
+                     const struct discord_interaction *interaction)
 {
   struct context *cxt = discord_get_data(client);
 

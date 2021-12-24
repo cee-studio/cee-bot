@@ -20,7 +20,7 @@ on_mentorship_channel_create(struct discord *client,
   snprintf(welcome_msg, sizeof(welcome_msg),
            "Welcome <@!%" PRIu64 ">, "
            "I hope you enjoy your new space! Check the available commands by "
-           "typing `/`, and check how you can further customize it.",
+           "typing `/`, and check how you can further customize your channel.",
            *user_id);
 
   discord_async_next(client, NULL);

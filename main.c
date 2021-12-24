@@ -93,12 +93,16 @@ main(int argc, char *argv[])
   /* get guild id */
   json = logconf_get_field(conf, "cee_bot.guild_id");
   cxt.guild_id = strtoull(json.start, NULL, 10);
-  /* get mentorship role id */
-  json = logconf_get_field(conf, "cee_bot.roles.mentorship_id");
-  cxt.roles.mentorship_id = strtoull(json.start, NULL, 10);
   /* get mentorship channels category id */
   json = logconf_get_field(conf, "cee_bot.category_id");
   cxt.category_id = strtoull(json.start, NULL, 10);
+  /* get roles */
+  json = logconf_get_field(conf, "cee_bot.roles.mentorship_id");
+  cxt.roles.mentorship_id = strtoull(json.start, NULL, 10);
+  json = logconf_get_field(conf, "cee_bot.roles.helper_id");
+  cxt.roles.helper_id = strtoull(json.start, NULL, 10);
+  json = logconf_get_field(conf, "cee_bot.roles.lurker_id");
+  cxt.roles.lurker_id = strtoull(json.start, NULL, 10);
 
   discord_set_data(client, &cxt);
 

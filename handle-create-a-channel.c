@@ -91,11 +91,14 @@ handle_create_a_channel(struct discord *client,
           &(struct discord_overwrite){
             .id = cxt->roles.lurker_id,
             .type = 0,
-            .deny = priv ? PERMS_ALL : 0,
+            .allow = priv ? 0 : PERMS_DEFAULT,
           },
           /* hide it from @everyone */
           &(struct discord_overwrite){
-            .id = cxt->guild_id, .type = 0, .deny = PERMS_ALL },
+            .id = cxt->guild_id,
+            .type = 0,
+            .deny = PERMS_ALL,
+          },
           NULL, /* END OF OVERWRITE LIST */
         },
       .parent_id = cxt->category_id,

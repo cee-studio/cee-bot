@@ -12,4 +12,4 @@
 
 ### `react.c` - React to the interaction
 
-This file consists on the react logic for this interaction, it is included at `main.c`
+This file consists of the react logic for this interaction, it is included at `main.c`.

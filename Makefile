@@ -3,8 +3,8 @@ SRCDIR := src
 OBJDIR := obj
 MAIN := main
 
-CFLAGS := -Wall -Wextra -O0 -g
-LDFLAGS := -ldiscord -lcurl -lcrypto -lpthread -lm
+CFLAGS := -pthread -Wall -Wextra -O0 -g
+LDFLAGS := -ldiscord -lcurl -lcrypto -lm
 
 all: $(MAIN)
 

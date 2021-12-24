@@ -11,19 +11,21 @@
     },
     "disable_modules": ["WEBSOCKETS", "USER_AGENT"]
   },
-  "cee_bot": {
-    "guild_id": "562694099887587338",
-    "mentorship": {
-      "channels_category_id": "872125076072460329",
-      "role_id": null 
-    },
-    "admin_roles": ["701251877039243364", "901695045168689162"]
-  },
   "discord": {
     "token": "YOUR-BOT-TOKEN",
     "default_prefix": {
       "enable": true,
       "prefix": ".c "
     }
+  },
+  "cee_bot": {
+    "guild_id": "796685395009732619",
+    "category_id": "796685395009732620",
+    "roles": {
+      "mentorship_id": "923980461884207154",
+      "helper_id": "924009198390509628",
+      "lurker_id": "924009084108300338"
+    },
+    "admin_roles": ["701251877039243364", "901695045168689162"]
   }
 }

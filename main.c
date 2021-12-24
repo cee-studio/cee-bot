@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <inttypes.h>
 #include <signal.h>
 #include <assert.h>
 
@@ -9,65 +10,17 @@
 struct discord *client;
 struct logconf *conf;
 
-u64_snowflake_t g_category_id;
-u64_snowflake_t g_role_id;
-u64_snowflake_t g_guild_id;
+struct context {
+  u64_snowflake_t guild_id;
+  u64_snowflake_t category_id;
+  struct {
+    u64_snowflake_t mentorship_id;
+    u64_snowflake_t helper_id;
+    u64_snowflake_t lurker_id;
+  } roles;
+};
 
-void
-handle_create_a_channel(struct discord *client,
-                        const struct discord_interaction *interaction)
-{
-  struct discord_guild_member *member = interaction->member;
-  bool private = false;
-
-  /* skip user with already assigned channel
-   * TODO: edit existing channel */
-  if (member->roles)
-    for (int i = 0; member->roles[i]; ++i) {
-      u64_snowflake_t role_id = member->roles[i]->value;
-
-      if (g_role_id == role_id) return;
-    }
-
-  /* get channel visibility */
-  if (interaction->data->values)
-    for (int i = 0; interaction->data->values[i]; ++i) {
-      char *value = interaction->data->values[i]->value;
-
-      if (0 == strcmp(value, "private")) {
-        private = true;
-      }
-    }
-
-  /* create user channel */
-  discord_create_guild_channel(
-    client, g_guild_id,
-    &(struct discord_create_guild_channel_params){
-      .name = member->user->username,
-      .permission_overwrites =
-        (struct discord_overwrite *[]){
-          /* see https://discordapi.com/permissions.html#377957256256 */
-          &(struct discord_overwrite){
-            .id = member->user->id,
-            .type = 1,
-            .allow = 1377957256256,
-          },
-          /* hide from @everyone only if 'private' has been set */
-          private ? &(struct discord_overwrite){
-            .id = g_guild_id,
-            .type = 0,
-            .deny = (enum discord_bitwise_permission_flags) - 1,
-          } : NULL,
-          NULL, /* END OF OVERWRITE LIST */
-        },
-      .parent_id = g_category_id,
-    },
-    NULL);
-
-  /* assign mentorship role to user */
-  discord_add_guild_member_role(client, g_guild_id, member->user->id,
-                                g_role_id);
-}
+#include "handle-create-a-channel.c" /* handle_create_a_channel() */
 
 void
 on_interaction_create(struct discord *client,
@@ -76,17 +29,30 @@ on_interaction_create(struct discord *client,
   /* Return in case of missing user input */
   if (!interaction->data) return;
 
+  /* initialize interaction response with some default values */
+  struct discord_interaction_response params = {
+    .type = DISCORD_INTERACTION_CALLBACK_CHANNEL_MESSAGE_WITH_SOURCE,
+    .data =
+      &(struct discord_interaction_callback_data){
+        .flags = DISCORD_INTERACTION_CALLBACK_DATA_EPHEMERAL,
+      },
+  };
+
   switch (interaction->type) {
   case DISCORD_INTERACTION_MESSAGE_COMPONENT:
     if (0 == strcmp(interaction->data->custom_id, "create-a-channel"))
-      handle_create_a_channel(client, interaction);
+      handle_create_a_channel(client, &params, interaction);
     break;
   default:
     log_error("%s (%d) is not dealt with",
               discord_interaction_types_print(interaction->type),
               interaction->type);
-    break;
+    return;
   }
+
+  discord_async_next(client, NULL);
+  discord_create_interaction_response(client, interaction->id,
+                                      interaction->token, &params, NULL);
 }
 
 /* shutdown gracefully on SIGINT received */
@@ -111,6 +77,7 @@ int
 main(int argc, char *argv[])
 {
   struct sized_buffer json;
+  struct context cxt = { 0 };
 
   signal(SIGINT, &sigint_handler);
   orca_global_init();
@@ -125,13 +92,15 @@ main(int argc, char *argv[])
 
   /* get guild id */
   json = logconf_get_field(conf, "cee_bot.guild_id");
-  g_guild_id = strtoull(json.start, NULL, 10);
+  cxt.guild_id = strtoull(json.start, NULL, 10);
   /* get mentorship role id */
-  json = logconf_get_field(conf, "cee_bot.mentorship.role_id");
-  g_role_id = strtoull(json.start, NULL, 10);
+  json = logconf_get_field(conf, "cee_bot.roles.mentorship_id");
+  cxt.roles.mentorship_id = strtoull(json.start, NULL, 10);
   /* get mentorship channels category id */
-  json = logconf_get_field(conf, "cee_bot.mentorship.channels_category_id");
-  g_category_id = strtoull(json.start, NULL, 10);
+  json = logconf_get_field(conf, "cee_bot.category_id");
+  cxt.category_id = strtoull(json.start, NULL, 10);
+
+  discord_set_data(client, &cxt);
 
   discord_run(client);
 

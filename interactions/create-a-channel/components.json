@@ -9,7 +9,7 @@
           {
             "label": "Public",
             "value": "public",
-            "description": "Your channel will be visible to everyone",
+            "description": "Your channel will be visible to lurkers and helpers alike",
             "emoji": {
               "name": "🔓"
             }
@@ -17,7 +17,7 @@
           {
             "label": "Private",
             "value": "private",
-            "description": "Your channel will be visible to staff and helpers",
+            "description": "Your channel will be visible to helpers only",
             "emoji": {
               "name": "🔒"
             }

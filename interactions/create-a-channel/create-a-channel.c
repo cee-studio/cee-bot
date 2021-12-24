@@ -7,36 +7,52 @@
 
 #define COMPONENTS_FILE "components.json"
 
-int
-main(int argc, char *argv[])
+struct discord_guild *
+get_guild(struct discord *client)
 {
-  struct discord *client;
-  struct sized_buffer json = { 0 };
-  /* load components from COMPONENTS_FILE */
-  struct discord_component **components = NULL;
-  /* load guild from 'config.json' guild_id */
-  struct discord_guild guild;
-  struct logconf *conf;
+  struct discord_guild *guild = calloc(1, sizeof *guild);
+  struct logconf *conf = discord_get_logconf(client);
+  struct sized_buffer guild_id = { 0 };
   ORCAcode code;
 
-  client = discord_config_init((argc > 1) ? argv[1] : "../../config.json");
-  assert(NULL != client && "Couldn't initialize client");
+  guild_id = logconf_get_field(conf, "cee_bot.guild_id");
+  assert(guild_id.size != 0 && "Missing cee_bot.guild_id");
 
-  /* load guild */
-  conf = discord_get_logconf(client);
-  json = logconf_get_field(conf, "cee_bot.guild_id");
-  assert(json.size != 0 && "Missing cee_bot.guild_id");
-
-  code = discord_get_guild(client, strtoull(json.start, NULL, 10), &guild);
+  code = discord_get_guild(client, strtoull(guild_id.start, NULL, 10), guild);
   if (code != ORCA_OK) {
     log_fatal("%s", discord_strerror(code, client));
     exit(EXIT_FAILURE);
   }
 
-  /* load JSON 'message components' string */
-  json.start = cee_load_whole_file(COMPONENTS_FILE, &json.size);
-  discord_component_list_from_json(json.start, json.size, &components);
-  free(json.start);
+  return guild;
+}
+
+struct discord_component **
+get_components(const char fname[])
+{
+  struct discord_component **components;
+  size_t fsize = 0;
+  char *fcontents;
+
+  fcontents = cee_load_whole_file(fname, &fsize);
+
+  discord_component_list_from_json(fcontents, fsize, &components);
+
+  return components;
+}
+
+int
+main(int argc, char *argv[])
+{
+  struct discord *client;
+  struct discord_guild *guild;
+  struct discord_component **components;
+
+  client = discord_config_init((argc > 1) ? argv[1] : "../../config.json");
+  assert(NULL != client && "Couldn't initialize client");
+
+  guild = get_guild(client);
+  components = get_components(COMPONENTS_FILE);
 
   struct discord_create_message_params params = {
     .content =
@@ -45,8 +61,5 @@ main(int argc, char *argv[])
       "project, you may create your own channel for that purpose.",
     .components = components
   };
-  discord_create_message(client, guild.rules_channel_id, &params, NULL);
-
-  discord_component_list_free(components);
-  discord_cleanup(client);
+  discord_create_message(client, guild->rules_channel_id, &params, NULL);
 }

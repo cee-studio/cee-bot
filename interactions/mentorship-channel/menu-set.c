@@ -5,7 +5,7 @@
 #include <orca/discord.h>
 #include <orca/cee-utils.h>
 
-#define COMPONENTS_FILE "components.json"
+#define COMPONENTS_FILE "menu.json"
 
 struct discord_guild *
 get_guild(struct discord *client)

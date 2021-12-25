@@ -8,7 +8,6 @@
 #include <orca/discord.h>
 
 struct discord *client;
-struct logconf *conf;
 
 struct context {
   u64_snowflake_t guild_id;
@@ -21,7 +20,7 @@ struct context {
 };
 
 /* react_create_mentorship_channel() */
-#include "interactions/create-mentorship-channel/react.c"
+#include "interactions/mentorship-channel/menu-react.c"
 
 void
 on_interaction_create(struct discord *client,
@@ -41,7 +40,7 @@ on_interaction_create(struct discord *client,
 
   switch (interaction->type) {
   case DISCORD_INTERACTION_MESSAGE_COMPONENT:
-    if (0 == strcmp(interaction->data->custom_id, "create-a-channel"))
+    if (0 == strcmp(interaction->data->custom_id, "create-mentorship-channel"))
       react_create_mentorship_channel(client, &params, interaction);
     break;
   default:
@@ -79,6 +78,7 @@ main(int argc, char *argv[])
 {
   struct sized_buffer json;
   struct context cxt = { 0 };
+  struct logconf *conf;
 
   signal(SIGINT, &sigint_handler);
   orca_global_init();

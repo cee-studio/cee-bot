@@ -1,7 +1,7 @@
 CC ?= gcc
 SRCDIR := src
 OBJDIR := obj
-MAIN := set
+MAIN := menu-set
 
 CFLAGS := -Wall -Wextra -O0 -g
 LDFLAGS := -ldiscord -lcurl -lcrypto -lpthread -lm

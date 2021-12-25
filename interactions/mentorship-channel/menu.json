@@ -4,7 +4,7 @@
     "components": [
       {
         "type":3,
-        "custom_id": "create-a-channel",
+        "custom_id": "create-mentorship-channel",
         "options":[
           {
             "label": "Public",

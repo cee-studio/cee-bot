@@ -23,5 +23,5 @@ This file consists of the react logic for this interaction, it is included at `m
 
 ### `cmd-set.c` - Set the application commands the users may use for editing their channel
 
-* Modify `cmds/` JSON files to change how the application commands are structured
+* Modify `cmd.json` to change how the mentorship channel application commands are structured
 * Run `./cmd-set`

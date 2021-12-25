@@ -19,6 +19,7 @@
     }
   },
   "cee_bot": {
+    "application_id": "YOUR-APPLICATION-ID",
     "guild_id": "796685395009732619",
     "category_id": "924037723017347102",
     "roles": {

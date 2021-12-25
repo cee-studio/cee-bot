@@ -1,14 +1,14 @@
 CC ?= gcc
 SRCDIR := src
 OBJDIR := obj
-MAIN := menu-set
+MAIN := cmd-set menu-set
 
 CFLAGS := -Wall -Wextra -O0 -g
 LDFLAGS := -ldiscord -lcurl -lcrypto -lpthread -lm
 
 all: $(MAIN)
 
-$(MAIN): $(MAIN).c
+%: %.c
 	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
 
 clean:

@@ -22,7 +22,8 @@
               "name": "🔒"
             }
           }
-        ]
+        ],
+        "placeholder":"Pick your channel visibility"
       }
     ]
   }

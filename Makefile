@@ -1,15 +1,33 @@
 CC ?= gcc
-SRCDIR := src
+
+INTERACTIONSDIR := interactions
 OBJDIR := obj
+
+SRC := $(wildcard $(INTERACTIONSDIR)/**/*.c)
+OBJS := $(SRC:$(INTERACTIONSDIR)/%.c=$(OBJDIR)/%.o)
+
 MAIN := main
 
-CFLAGS := -pthread -Wall -Wextra -O0 -g
+CFLAGS := -pthread -Wall -Wextra -O0 -g -I$(INTERACTIONSDIR)
 LDFLAGS := -ldiscord -lcurl -lcrypto -lm
+
+$(OBJDIR)/%.o: $(INTERACTIONSDIR)/%.c
+	$(CC) $(CFLAGS) -c -o $@ $< $(LDFLAGS)
 
 all: $(MAIN)
 
-$(MAIN): $(MAIN).c
-	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
+$(MAIN): $(MAIN).c $(OBJS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
+$(OBJS): | $(OBJDIR)
+
+$(OBJDIR):
+	mkdir -p $(dir $(OBJS))
+
+echo:
+	@ echo SRC: $(SRC)
+	@ echo OBJS: $(OBJS)
 
 clean:
-	rm $(MAIN)
+	rm -rf $(MAIN)
+	rm -rf $(OBJDIR)

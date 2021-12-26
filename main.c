@@ -1,40 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <inttypes.h>
 #include <signal.h>
 #include <assert.h>
 
 #include <orca/discord.h>
 
-/* see https://discordapi.com/permissions.html#377957256256 */
-#define PERMS_DEFAULT 377957256256
-#define PERMS_ALL     (enum discord_bitwise_permission_flags) - 1
+#include "interactions.h"
 
 struct discord *client;
-
-struct client_context {
-  u64_snowflake_t guild_id;
-  u64_snowflake_t category_id;
-  struct {
-    u64_snowflake_t mentorship_id;
-    u64_snowflake_t helper_id;
-    u64_snowflake_t lurker_id;
-  } roles;
-};
-
-struct async_context {
-  u64_snowflake_t user_id;
-  struct {
-    u64_snowflake_t application_id;
-    char token[256];
-  } interaction;
-};
-
-/* react_mentorship_channel_menu() */
-#include "interactions/mentorship-channel/menu-react.c"
-/* react_mentorship_channel_delete() */
-#include "interactions/mentorship-channel/cmd-react.c"
 
 void
 on_interaction_create(struct discord *client,

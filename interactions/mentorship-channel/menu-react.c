@@ -1,4 +1,11 @@
-void
+#include <string.h>
+#include <inttypes.h> /* PRIu64 */
+
+#include <orca/discord.h>
+
+#include "interactions.h"
+
+static void
 on_mentorship_channel_create(struct discord *client,
                              struct discord_async_ret *ret)
 {

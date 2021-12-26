@@ -5,7 +5,7 @@
 #include <orca/discord.h>
 #include <orca/cee-utils.h>
 
-#define COMPONENTS_FILE "menu.json"
+#define COMPONENTS_FILE "mentorship-channel/menu.json"
 
 struct discord_guild *
 get_guild(struct discord *client)
@@ -48,7 +48,7 @@ main(int argc, char *argv[])
   struct discord_guild *guild;
   struct discord_component **components;
 
-  client = discord_config_init((argc > 1) ? argv[1] : "../../config.json");
+  client = discord_config_init((argc > 1) ? argv[1] : "../config.json");
   assert(NULL != client && "Couldn't initialize client");
 
   guild = get_guild(client);

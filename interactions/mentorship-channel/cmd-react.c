@@ -1,4 +1,11 @@
-void
+#include <string.h>
+#include <inttypes.h> /* PRIu64 */
+
+#include <orca/discord.h>
+
+#include "interactions.h"
+
+static void
 mentorship_channel_delete(struct discord *client,
                           struct discord_async_ret *ret)
 {
@@ -33,9 +40,8 @@ mentorship_channel_delete(struct discord *client,
       }
 
   discord_async_next(client, NULL);
-  discord_edit_original_interaction_response(
-    client, async_cxt->interaction.application_id,
-    async_cxt->interaction.token, &params, NULL);
+  discord_edit_original_interaction_response(client, async_cxt->application_id,
+                                             async_cxt->token, &params, NULL);
 }
 
 void
@@ -73,9 +79,9 @@ react_mentorship_channel_delete(
 
   struct async_context *async_cxt = malloc(sizeof *async_cxt);
   async_cxt->user_id = member->user->id;
-  async_cxt->interaction.application_id = interaction->application_id;
-  snprintf(async_cxt->interaction.token, sizeof(async_cxt->interaction.token),
-           "%s", interaction->token);
+  async_cxt->application_id = interaction->application_id;
+  snprintf(async_cxt->token, sizeof(async_cxt->token), "%s",
+           interaction->token);
 
   discord_async_next(client, &(struct discord_async_attr){
                                .done = &mentorship_channel_delete,

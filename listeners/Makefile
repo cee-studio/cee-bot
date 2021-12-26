@@ -1,5 +1,5 @@
 CC ?= gcc
-SRC := $(wildcard */*-set.c)
+SRC := $(wildcard */*.c)
 SETTERS := $(SRC:%.c=%)
 
 CFLAGS := -Wall -Wextra -O0 -g -pthread

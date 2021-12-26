@@ -14,20 +14,20 @@ $ make
 2. (optional) Modify the default listeners by editing the sub-folder's JSON files.
 3. Run executables to activate their respective listeners
 
-# Interactions Listing
+# Listeners Listing
 
-## `Create Mentorship Channel`
+## [mentorship-channel/](mentorship-channel/)
 
 ### Channel creation menu
 
-#### `menu-set.c` - Initialize the select menu message to guild's `#rules` channel
+#### `menu.c` - Initialize the select menu message to guild's `#rules` channel
 
 * Modify [`menu.json`](mentorship-channel/menu.json) to change how the select menu interaction is structured
-* Run `./menu-set`
+* Run `./menu`
 
 ### Commands for mentorship channel editing
 
-#### `cmd-set.c` - Set the application commands the users may use for editing their channel
+#### `cmd.c` - Set the application commands the users may use for editing their channel
 
 * Modify [`cmd.json`](mentorship-channel/cmd.json) to change how the mentorship channel application commands are structured
-* Run `./cmd-set`
+* Run `./cmd`

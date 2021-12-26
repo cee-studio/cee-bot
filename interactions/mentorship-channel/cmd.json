@@ -1,5 +1,5 @@
 {
-  "name": "my_channel",
+  "name": "mychannel",
   "description": "Mentorship channel commands",
   "type": 1,
   "default_permission": true,

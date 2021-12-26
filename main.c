@@ -7,9 +7,13 @@
 
 #include <orca/discord.h>
 
+/* see https://discordapi.com/permissions.html#377957256256 */
+#define PERMS_DEFAULT 377957256256
+#define PERMS_ALL     (enum discord_bitwise_permission_flags) - 1
+
 struct discord *client;
 
-struct context {
+struct client_context {
   u64_snowflake_t guild_id;
   u64_snowflake_t category_id;
   struct {
@@ -19,8 +23,18 @@ struct context {
   } roles;
 };
 
-/* react_create_mentorship_channel() */
+struct async_context {
+  u64_snowflake_t user_id;
+  struct {
+    u64_snowflake_t application_id;
+    char token[256];
+  } interaction;
+};
+
+/* react_mentorship_channel_menu() */
 #include "interactions/mentorship-channel/menu-react.c"
+/* react_mentorship_channel_delete() */
+#include "interactions/mentorship-channel/cmd-react.c"
 
 void
 on_interaction_create(struct discord *client,
@@ -39,9 +53,28 @@ on_interaction_create(struct discord *client,
   };
 
   switch (interaction->type) {
+  case DISCORD_INTERACTION_APPLICATION_COMMAND:
+    if (0 == strcmp(interaction->data->name, "mychannel")) {
+
+      if (interaction->data->options)
+        for (int i = 0; interaction->data->options[i]; ++i) {
+          char *cmd = interaction->data->options[i]->name;
+
+          if (0 == strcmp(cmd, "action")) {
+          }
+          else if (0 == strcmp(cmd, "configure")) {
+          }
+          else if (0 == strcmp(cmd, "delete")) {
+            react_mentorship_channel_delete(
+              client, &params, interaction,
+              interaction->data->options[i]->options);
+          }
+        }
+    }
+    break;
   case DISCORD_INTERACTION_MESSAGE_COMPONENT:
     if (0 == strcmp(interaction->data->custom_id, "create-mentorship-channel"))
-      react_create_mentorship_channel(client, &params, interaction);
+      react_mentorship_channel_menu(client, &params, interaction);
     break;
   default:
     log_error("%s (%d) is not dealt with",
@@ -77,7 +110,7 @@ int
 main(int argc, char *argv[])
 {
   struct sized_buffer json;
-  struct context cxt = { 0 };
+  struct client_context client_cxt = { 0 };
   struct logconf *conf;
 
   signal(SIGINT, &sigint_handler);
@@ -93,19 +126,19 @@ main(int argc, char *argv[])
 
   /* get guild id */
   json = logconf_get_field(conf, "cee_bot.guild_id");
-  cxt.guild_id = strtoull(json.start, NULL, 10);
+  client_cxt.guild_id = strtoull(json.start, NULL, 10);
   /* get mentorship channels category id */
   json = logconf_get_field(conf, "cee_bot.category_id");
-  cxt.category_id = strtoull(json.start, NULL, 10);
+  client_cxt.category_id = strtoull(json.start, NULL, 10);
   /* get roles */
   json = logconf_get_field(conf, "cee_bot.roles.mentorship_id");
-  cxt.roles.mentorship_id = strtoull(json.start, NULL, 10);
+  client_cxt.roles.mentorship_id = strtoull(json.start, NULL, 10);
   json = logconf_get_field(conf, "cee_bot.roles.helper_id");
-  cxt.roles.helper_id = strtoull(json.start, NULL, 10);
+  client_cxt.roles.helper_id = strtoull(json.start, NULL, 10);
   json = logconf_get_field(conf, "cee_bot.roles.lurker_id");
-  cxt.roles.lurker_id = strtoull(json.start, NULL, 10);
+  client_cxt.roles.lurker_id = strtoull(json.start, NULL, 10);
 
-  discord_set_data(client, &cxt);
+  discord_set_data(client, &client_cxt);
 
   discord_run(client);
 

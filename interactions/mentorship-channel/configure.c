@@ -5,41 +5,52 @@
 
 #include "interactions.h"
 
+/** @brief Per-request context storage for async functions */
+struct context {
+  /** the user that triggered the interaction */
+  u64_snowflake_t user_id;
+  /** the client's application id */
+  u64_snowflake_t application_id;
+  /** the interaction token */
+  char token[256];
+  /** whether mentorship channel is private */
+  bool priv;
+};
+
 static void
-mentorship_channel_modify(struct discord *client,
+mentorship_channel_modify(struct discord *ceebot,
                           struct discord_async_ret *ret)
 {
   struct discord_edit_original_interaction_response_params params = { 0 };
-  struct client_context *client_cxt = discord_get_data(client);
+  struct ceebot_primitives *primitives = discord_get_data(ceebot);
   const struct discord_channel *channel = ret->ret;
-  struct async_context *async_cxt = ret->data;
-  bool priv = async_cxt->data;
+  struct context *cxt = ret->data;
 
-  if (!is_user_channel(channel, client_cxt->category_id, async_cxt->user_id)) {
+  if (!is_user_channel(channel, primitives->category_id, cxt->user_id)) {
     params.content = "Couldn't complete operation. Make sure to use command "
                      "from your channel.";
   }
   else {
     /* edit user channel */
-    discord_async_next(client, NULL);
+    discord_async_next(ceebot, NULL);
     discord_edit_channel_permissions(
-      client, channel->id, client_cxt->roles.lurker_id,
+      ceebot, channel->id, primitives->roles.lurker_id,
       &(struct discord_edit_channel_permissions_params){
         .type = 0,
-        .allow = priv ? 0 : PERMS_DEFAULT,
+        .allow = cxt->priv ? 0 : PERMS_DEFAULT,
       });
 
     params.content = "Channel visibility has been changed succesfully";
   }
 
-  discord_async_next(client, NULL);
-  discord_edit_original_interaction_response(client, async_cxt->application_id,
-                                             async_cxt->token, &params, NULL);
+  discord_async_next(ceebot, NULL);
+  discord_edit_original_interaction_response(ceebot, cxt->application_id,
+                                             cxt->token, &params, NULL);
 }
 
 void
 react_mentorship_channel_configure(
-  struct discord *client,
+  struct discord *ceebot,
   struct discord_interaction_response *params,
   const struct discord_interaction *interaction,
   struct discord_application_command_interaction_data_option **options)
@@ -60,19 +71,18 @@ react_mentorship_channel_configure(
     return;
   }
 
-  struct async_context *async_cxt = malloc(sizeof *async_cxt);
-  async_cxt->user_id = member->user->id;
-  async_cxt->application_id = interaction->application_id;
-  snprintf(async_cxt->token, sizeof(async_cxt->token), "%s",
-           interaction->token);
-  async_cxt->data = (0 == strcmp(visibility, "private")) ? (void *)1 : NULL;
+  struct context *cxt = malloc(sizeof *cxt);
+  cxt->user_id = member->user->id;
+  cxt->application_id = interaction->application_id;
+  snprintf(cxt->token, sizeof(cxt->token), "%s", interaction->token);
+  cxt->priv = (0 == strcmp(visibility, "private"));
 
-  discord_async_next(client, &(struct discord_async_attr){
+  discord_async_next(ceebot, &(struct discord_async_attr){
                                .done = &mentorship_channel_modify,
-                               .data = async_cxt,
+                               .data = cxt,
                                .cleanup = &free,
                              });
-  discord_get_channel(client, interaction->channel_id, NULL);
+  discord_get_channel(ceebot, interaction->channel_id, NULL);
 
   params->type =
     DISCORD_INTERACTION_CALLBACK_DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE;

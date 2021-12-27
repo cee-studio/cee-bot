@@ -5,16 +5,26 @@
 
 #include "interactions.h"
 
+/** @brief Per-request context storage for async functions */
+struct context {
+  /** the user that triggered the interaction */
+  u64_snowflake_t user_id;
+  /** the client's application id */
+  u64_snowflake_t application_id;
+  /** the interaction token */
+  char token[256];
+};
+
 static void
 mentorship_channel_delete(struct discord *client,
                           struct discord_async_ret *ret)
 {
   struct discord_edit_original_interaction_response_params params = { 0 };
-  struct client_context *client_cxt = discord_get_data(client);
+  struct ceebot_primitives *primitives = discord_get_data(client);
   const struct discord_channel *channel = ret->ret;
-  struct async_context *async_cxt = ret->data;
+  struct context *cxt = ret->data;
 
-  if (!is_user_channel(channel, client_cxt->category_id, async_cxt->user_id)) {
+  if (!is_user_channel(channel, primitives->category_id, cxt->user_id)) {
     params.content = "Couldn't complete operation. Make sure to use command "
                      "from your channel.";
   }
@@ -25,18 +35,18 @@ mentorship_channel_delete(struct discord *client,
 
     /* remove mentorship role from user */
     discord_async_next(client, NULL);
-    discord_remove_guild_member_role(client, client_cxt->guild_id,
-                                     async_cxt->user_id,
-                                     client_cxt->roles.mentorship_id);
+    discord_remove_guild_member_role(client, primitives->guild_id,
+                                     cxt->user_id,
+                                     primitives->roles.mentorship_id);
 
-    log_info("Remove mentorship role from %" PRIu64, async_cxt->user_id);
+    log_info("Remove mentorship role from %" PRIu64, cxt->user_id);
 
     params.content = "Channel has been deleted succesfully";
   }
 
   discord_async_next(client, NULL);
-  discord_edit_original_interaction_response(client, async_cxt->application_id,
-                                             async_cxt->token, &params, NULL);
+  discord_edit_original_interaction_response(client, cxt->application_id,
+                                             cxt->token, &params, NULL);
 }
 
 void
@@ -72,15 +82,14 @@ react_mentorship_channel_delete(
              reason);
   }
 
-  struct async_context *async_cxt = malloc(sizeof *async_cxt);
-  async_cxt->user_id = member->user->id;
-  async_cxt->application_id = interaction->application_id;
-  snprintf(async_cxt->token, sizeof(async_cxt->token), "%s",
-           interaction->token);
+  struct context *cxt = malloc(sizeof *cxt);
+  cxt->user_id = member->user->id;
+  cxt->application_id = interaction->application_id;
+  snprintf(cxt->token, sizeof(cxt->token), "%s", interaction->token);
 
   discord_async_next(client, &(struct discord_async_attr){
                                .done = &mentorship_channel_delete,
-                               .data = async_cxt,
+                               .data = cxt,
                                .cleanup = &free,
                              });
   discord_get_channel(client, interaction->channel_id, NULL);

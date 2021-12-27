@@ -8,10 +8,10 @@
 
 #include "interactions.h"
 
-struct discord *client;
+struct discord *ceebot;
 
 void
-on_interaction_create(struct discord *client,
+on_interaction_create(struct discord *ceebot,
                       const struct discord_interaction *interaction)
 {
   /* Return in case of missing user input */
@@ -23,6 +23,9 @@ on_interaction_create(struct discord *client,
     .data =
       &(struct discord_interaction_callback_data){
         .flags = DISCORD_INTERACTION_CALLBACK_DATA_EPHEMERAL,
+        .content =
+          "⚠️ Internal Error! Interaction is malfunctioning, please "
+          "report to the staff.",
       },
   };
 
@@ -38,12 +41,12 @@ on_interaction_create(struct discord *client,
           }
           else if (0 == strcmp(cmd, "configure")) {
             react_mentorship_channel_configure(
-              client, &params, interaction,
+              ceebot, &params, interaction,
               interaction->data->options[i]->options);
           }
           else if (0 == strcmp(cmd, "delete")) {
             react_mentorship_channel_delete(
-              client, &params, interaction,
+              ceebot, &params, interaction,
               interaction->data->options[i]->options);
           }
         }
@@ -51,17 +54,17 @@ on_interaction_create(struct discord *client,
     break;
   case DISCORD_INTERACTION_MESSAGE_COMPONENT:
     if (0 == strcmp(interaction->data->custom_id, "create-mentorship-channel"))
-      react_mentorship_channel_menu(client, &params, interaction);
+      react_mentorship_channel_menu(ceebot, &params, interaction);
     break;
   default:
     log_error("%s (%d) is not dealt with",
               discord_interaction_types_print(interaction->type),
               interaction->type);
-    return;
+    break;
   }
 
-  discord_async_next(client, NULL);
-  discord_create_interaction_response(client, interaction->id,
+  discord_async_next(ceebot, NULL);
+  discord_create_interaction_response(ceebot, interaction->id,
                                       interaction->token, &params, NULL);
 }
 
@@ -71,54 +74,64 @@ sigint_handler(int signum)
 {
   (void)signum;
   log_info("SIGINT received, shutting down ...");
-  discord_shutdown(client);
+  discord_shutdown(ceebot);
 }
 
 void
-on_ready(struct discord *client)
+on_ready(struct discord *ceebot)
 {
-  const struct discord_user *bot = discord_get_self(client);
+  const struct discord_user *bot = discord_get_self(ceebot);
 
   log_info("Cee-Bot succesfully connected to Discord as %s#%s!", bot->username,
            bot->discriminator);
 }
 
+struct ceebot_primitives
+ceebot_get_primitives(struct discord *ceebot)
+{
+  struct ceebot_primitives primitives = { 0 };
+  struct sized_buffer json;
+  struct logconf *conf = discord_get_logconf(ceebot);
+
+  /* get guild id */
+  json = logconf_get_field(conf, "cee_bot.guild_id");
+  primitives.guild_id = strtoull(json.start, NULL, 10);
+
+  /* get mentorship channels category id */
+  json = logconf_get_field(conf, "cee_bot.category_id");
+  primitives.category_id = strtoull(json.start, NULL, 10);
+
+  /* get roles */
+  json = logconf_get_field(conf, "cee_bot.roles.mentorship_id");
+  primitives.roles.mentorship_id = strtoull(json.start, NULL, 10);
+  json = logconf_get_field(conf, "cee_bot.roles.helper_id");
+  primitives.roles.helper_id = strtoull(json.start, NULL, 10);
+  json = logconf_get_field(conf, "cee_bot.roles.lurker_id");
+  primitives.roles.lurker_id = strtoull(json.start, NULL, 10);
+
+  return primitives;
+}
+
 int
 main(int argc, char *argv[])
 {
-  struct sized_buffer json;
-  struct client_context client_cxt = { 0 };
-  struct logconf *conf;
+  struct ceebot_primitives primitives;
 
   signal(SIGINT, &sigint_handler);
   orca_global_init();
 
-  client = discord_config_init((argc > 1) ? argv[1] : "config.json");
-  assert(NULL != client && "Couldn't initialize client");
+  ceebot = discord_config_init((argc > 1) ? argv[1] : "config.json");
+  assert(NULL != ceebot && "Couldn't initialize client");
 
-  conf = discord_get_logconf(client);
+  primitives = ceebot_get_primitives(ceebot);
 
-  discord_set_on_ready(client, &on_ready);
-  discord_set_on_interaction_create(client, &on_interaction_create);
+  discord_set_on_ready(ceebot, &on_ready);
+  discord_set_on_interaction_create(ceebot, &on_interaction_create);
 
-  /* get guild id */
-  json = logconf_get_field(conf, "cee_bot.guild_id");
-  client_cxt.guild_id = strtoull(json.start, NULL, 10);
-  /* get mentorship channels category id */
-  json = logconf_get_field(conf, "cee_bot.category_id");
-  client_cxt.category_id = strtoull(json.start, NULL, 10);
-  /* get roles */
-  json = logconf_get_field(conf, "cee_bot.roles.mentorship_id");
-  client_cxt.roles.mentorship_id = strtoull(json.start, NULL, 10);
-  json = logconf_get_field(conf, "cee_bot.roles.helper_id");
-  client_cxt.roles.helper_id = strtoull(json.start, NULL, 10);
-  json = logconf_get_field(conf, "cee_bot.roles.lurker_id");
-  client_cxt.roles.lurker_id = strtoull(json.start, NULL, 10);
+  discord_set_data(ceebot, &primitives);
 
-  discord_set_data(client, &client_cxt);
+  discord_run(ceebot);
 
-  discord_run(client);
-
-  discord_cleanup(client);
+  discord_cleanup(ceebot);
   orca_global_cleanup();
 }

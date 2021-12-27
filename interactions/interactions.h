@@ -2,11 +2,12 @@
 #define INTERACTIONS_H
 
 /* see https://discordapi.com/permissions.html#377957256256 */
-#define PERMS_DEFAULT 377957256256
-#define PERMS_ALL     (enum discord_bitwise_permission_flags) - 1
+#define PERMS_DEFAULT (377957256256)
+/* all bits set */
+#define PERMS_ALL     ((enum discord_bitwise_permission_flags) - 1)
 
 /** @brief The client environment to work with */
-struct client_context {
+struct ceebot_primitives {
   /** the guild our client will react to */
   u64_snowflake_t guild_id;
   /** the mentorship channels category id */
@@ -24,18 +25,6 @@ struct client_context {
      */
     u64_snowflake_t lurker_id;
   } roles;
-};
-
-/** @brief Per-request context storing for async functions */
-struct async_context {
-  /** the user that triggered the interaction */
-  u64_snowflake_t user_id;
-  /** the client's application id */
-  u64_snowflake_t application_id;
-  /** the interaction token */
-  char token[256];
-  /** arbitrary data */
-  void *data;
 };
 
 /**

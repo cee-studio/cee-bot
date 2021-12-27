@@ -9,7 +9,7 @@ static void
 on_mentorship_channel_create(struct discord *client,
                              struct discord_async_ret *ret)
 {
-  struct client_context *client_cxt = discord_get_data(client);
+  struct ceebot_primitives *primitives = discord_get_data(client);
   char welcome_msg[DISCORD_MAX_MESSAGE_LEN] = "";
 
   const struct discord_channel *channel = ret->ret;
@@ -17,8 +17,8 @@ on_mentorship_channel_create(struct discord *client,
 
   /* assign mentorship role to user */
   discord_async_next(client, NULL);
-  discord_add_guild_member_role(client, client_cxt->guild_id, *user_id,
-                                client_cxt->roles.mentorship_id);
+  discord_add_guild_member_role(client, primitives->guild_id, *user_id,
+                                primitives->roles.mentorship_id);
 
   snprintf(welcome_msg, sizeof(welcome_msg),
            "Welcome <@!%" PRIu64 ">, "
@@ -39,7 +39,7 @@ react_mentorship_channel_menu(struct discord *client,
                               struct discord_interaction_response *params,
                               const struct discord_interaction *interaction)
 {
-  struct client_context *client_cxt = discord_get_data(client);
+  struct ceebot_primitives *primitives = discord_get_data(client);
 
   struct discord_guild_member *member = interaction->member;
   bool priv = false;
@@ -49,7 +49,7 @@ react_mentorship_channel_menu(struct discord *client,
     for (int i = 0; member->roles[i]; ++i) {
       u64_snowflake_t role_id = member->roles[i]->value;
 
-      if (role_id == client_cxt->roles.mentorship_id) {
+      if (role_id == primitives->roles.mentorship_id) {
         params->data->content =
           "It seems you already have a channel, please edit it from within";
         return;
@@ -73,7 +73,7 @@ react_mentorship_channel_menu(struct discord *client,
                                .data = user_id,
                                .cleanup = &free });
   discord_create_guild_channel(
-    client, client_cxt->guild_id,
+    client, primitives->guild_id,
     &(struct discord_create_guild_channel_params){
       .name = member->user->username,
       .permission_overwrites =
@@ -86,25 +86,25 @@ react_mentorship_channel_menu(struct discord *client,
           },
           /* give read/write permission for @helper */
           &(struct discord_overwrite){
-            .id = client_cxt->roles.helper_id,
+            .id = primitives->roles.helper_id,
             .type = 0,
             .allow = PERMS_DEFAULT,
           },
           /* hide it from @lurker only if 'priv' has been set */
           &(struct discord_overwrite){
-            .id = client_cxt->roles.lurker_id,
+            .id = primitives->roles.lurker_id,
             .type = 0,
             .allow = priv ? 0 : PERMS_DEFAULT,
           },
           /* hide it from @everyone */
           &(struct discord_overwrite){
-            .id = client_cxt->guild_id,
+            .id = primitives->guild_id,
             .type = 0,
             .deny = PERMS_ALL,
           },
           NULL, /* END OF OVERWRITE LIST */
         },
-      .parent_id = client_cxt->category_id,
+      .parent_id = primitives->category_id,
     },
     NULL);
 

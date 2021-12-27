@@ -13,7 +13,7 @@ Once you are ready, you can come back to this folder and continue:
     ```
 2. (optional) Modify the default listeners by editing the sub-folder's JSON files.
 3. Run executables with the relative path of the listener JSON to be activated
-    **Example:**
+  * **Example:**
     ```bash
     $ ./menu mentorship-channel/menu.json
     ```

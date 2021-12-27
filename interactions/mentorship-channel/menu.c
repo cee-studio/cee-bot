@@ -6,18 +6,18 @@
 #include "interactions.h"
 
 static void
-on_mentorship_channel_create(struct discord *client,
+on_mentorship_channel_create(struct discord *ceebot,
                              struct discord_async_ret *ret)
 {
-  struct ceebot_primitives *primitives = discord_get_data(client);
+  struct ceebot_primitives *primitives = discord_get_data(ceebot);
   char welcome_msg[DISCORD_MAX_MESSAGE_LEN] = "";
 
   const struct discord_channel *channel = ret->ret;
   u64_snowflake_t *user_id = ret->data;
 
   /* assign mentorship role to user */
-  discord_async_next(client, NULL);
-  discord_add_guild_member_role(client, primitives->guild_id, *user_id,
+  discord_async_next(ceebot, NULL);
+  discord_add_guild_member_role(ceebot, primitives->guild_id, *user_id,
                                 primitives->roles.mentorship_id);
 
   snprintf(welcome_msg, sizeof(welcome_msg),
@@ -26,8 +26,8 @@ on_mentorship_channel_create(struct discord *client,
            "typing `/mychannel` for further channel customization!",
            *user_id);
 
-  discord_async_next(client, NULL);
-  discord_create_message(client, channel->id,
+  discord_async_next(ceebot, NULL);
+  discord_create_message(ceebot, channel->id,
                          &(struct discord_create_message_params){
                            .content = welcome_msg,
                          },
@@ -35,11 +35,11 @@ on_mentorship_channel_create(struct discord *client,
 }
 
 void
-react_mentorship_channel_menu(struct discord *client,
+react_mentorship_channel_menu(struct discord *ceebot,
                               struct discord_interaction_response *params,
                               const struct discord_interaction *interaction)
 {
-  struct ceebot_primitives *primitives = discord_get_data(client);
+  struct ceebot_primitives *primitives = discord_get_data(ceebot);
 
   struct discord_guild_member *member = interaction->member;
   bool priv = false;
@@ -68,12 +68,12 @@ react_mentorship_channel_menu(struct discord *client,
   *user_id = member->user->id;
 
   /* create user channel */
-  discord_async_next(client, &(struct discord_async_attr){
+  discord_async_next(ceebot, &(struct discord_async_attr){
                                .done = &on_mentorship_channel_create,
                                .data = user_id,
                                .cleanup = &free });
   discord_create_guild_channel(
-    client, primitives->guild_id,
+    ceebot, primitives->guild_id,
     &(struct discord_create_guild_channel_params){
       .name = member->user->username,
       .permission_overwrites =

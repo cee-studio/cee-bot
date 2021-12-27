@@ -16,11 +16,11 @@ struct context {
 };
 
 static void
-mentorship_channel_delete(struct discord *client,
+mentorship_channel_delete(struct discord *ceebot,
                           struct discord_async_ret *ret)
 {
   struct discord_edit_original_interaction_response_params params = { 0 };
-  struct ceebot_primitives *primitives = discord_get_data(client);
+  struct ceebot_primitives *primitives = discord_get_data(ceebot);
   const struct discord_channel *channel = ret->ret;
   struct context *cxt = ret->data;
 
@@ -30,12 +30,12 @@ mentorship_channel_delete(struct discord *client,
   }
   else {
     /* delete user channel */
-    discord_async_next(client, NULL);
-    discord_delete_channel(client, channel->id, NULL);
+    discord_async_next(ceebot, NULL);
+    discord_delete_channel(ceebot, channel->id, NULL);
 
     /* remove mentorship role from user */
-    discord_async_next(client, NULL);
-    discord_remove_guild_member_role(client, primitives->guild_id,
+    discord_async_next(ceebot, NULL);
+    discord_remove_guild_member_role(ceebot, primitives->guild_id,
                                      cxt->user_id,
                                      primitives->roles.mentorship_id);
 
@@ -44,14 +44,14 @@ mentorship_channel_delete(struct discord *client,
     params.content = "Channel has been deleted succesfully";
   }
 
-  discord_async_next(client, NULL);
-  discord_edit_original_interaction_response(client, cxt->application_id,
+  discord_async_next(ceebot, NULL);
+  discord_edit_original_interaction_response(ceebot, cxt->application_id,
                                              cxt->token, &params, NULL);
 }
 
 void
 react_mentorship_channel_delete(
-  struct discord *client,
+  struct discord *ceebot,
   struct discord_interaction_response *params,
   const struct discord_interaction *interaction,
   struct discord_application_command_interaction_data_option **options)
@@ -87,12 +87,12 @@ react_mentorship_channel_delete(
   cxt->application_id = interaction->application_id;
   snprintf(cxt->token, sizeof(cxt->token), "%s", interaction->token);
 
-  discord_async_next(client, &(struct discord_async_attr){
+  discord_async_next(ceebot, &(struct discord_async_attr){
                                .done = &mentorship_channel_delete,
                                .data = cxt,
                                .cleanup = &free,
                              });
-  discord_get_channel(client, interaction->channel_id, NULL);
+  discord_get_channel(ceebot, interaction->channel_id, NULL);
 
   params->type =
     DISCORD_INTERACTION_CALLBACK_DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE;

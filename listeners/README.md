@@ -8,26 +8,21 @@ update it with your guild primitives.
 Once you are ready, you can come back to this folder and continue:
 
 1. Build executables:
-```bash
-$ make
-```
+  ```bash
+  $ make
+  ```
 2. (optional) Modify the default listeners by editing the sub-folder's JSON files.
-3. Run executables to activate their respective listeners
+3. Run executables with the relative path of the listener JSON to be activated
+  **Example:**
+  ```bash
+  $ ./menu mentorship-channel/menu.json
+  ```
 
 # Listeners Listing
 
 ## [mentorship-channel/](mentorship-channel/)
+### [`menu.json`](mentorship-channel/menu.json) - Initialize the channel-create menu message to guild's `#rules` channel
+### [`cmd.json`](mentorship-channel/cmd.json) - Set the application commands the users may use for editing their channel
 
-### Channel creation menu
-
-#### `menu.c` - Initialize the select menu message to guild's `#rules` channel
-
-* Modify [`menu.json`](mentorship-channel/menu.json) to change how the select menu interaction is structured
-* Run `./menu`
-
-### Commands for mentorship channel editing
-
-#### `cmd.c` - Set the application commands the users may use for editing their channel
-
-* Modify [`cmd.json`](mentorship-channel/cmd.json) to change how the mentorship channel application commands are structured
-* Run `./cmd`
+## [select-roles/](select-roles/)
+### [`menu.json`](select-roles/menu.json) - Initialize the role-picking menu message to guild's `#rules` channel

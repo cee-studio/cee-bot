@@ -1,12 +1,12 @@
 CC ?= gcc
-SRC := $(wildcard */*.c)
+SRC := cmd.c menu.c
 SETTERS := $(SRC:%.c=%)
 
 CFLAGS := -Wall -Wextra -O0 -g -pthread
 LDFLAGS := -ldiscord -lcurl -lcrypto -lm
 
 %: %.c
-	$(CC) $(CFLAGS) -o $(notdir $@) $< $(LDFLAGS)
+	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
 
 all: $(SETTERS)
 
@@ -15,4 +15,4 @@ echo:
 	@ echo SETTERS: $(SETTERS)
 
 clean:
-	rm $(notdir $(SETTERS))
+	rm $(SETTERS)

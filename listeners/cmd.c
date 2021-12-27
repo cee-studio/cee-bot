@@ -5,8 +5,6 @@
 #include <orca/discord.h>
 #include <orca/cee-utils.h>
 
-#define COMMANDS_FILE "mentorship-channel/cmd.json"
-
 struct discord_guild *
 get_guild(struct discord *client)
 {
@@ -42,15 +40,16 @@ get_application_id(struct discord *client)
 struct discord_create_guild_application_command_params *
 get_application_commands(const char fname[])
 {
-  struct discord_create_guild_application_command_params *params;
+  struct discord_create_guild_application_command_params *params = NULL;
   size_t fsize = 0;
   char *fcontents;
 
-  params = calloc(1, sizeof *params);
   fcontents = cee_load_whole_file(fname, &fsize);
+  assert(fcontents != NULL && "Missing file");
+  assert(fsize != 0 && "Empty file");
 
-  discord_create_guild_application_command_params_from_json(fcontents, fsize,
-                                                            params);
+  discord_create_guild_application_command_params_from_json_p(fcontents, fsize,
+                                                              &params);
 
   return params;
 }
@@ -63,12 +62,14 @@ main(int argc, char *argv[])
   struct discord_guild *guild;
   struct discord *client;
 
-  client = discord_config_init((argc > 1) ? argv[1] : "../config.json");
+  assert(argc > 1 && "Expect: ./cmd <path>/cmd.json <?config_file>");
+
+  client = discord_config_init((argc > 2) ? argv[2] : "../config.json");
   assert(NULL != client && "Couldn't initialize client");
 
   guild = get_guild(client);
+  params = get_application_commands(argv[1]);
   application_id = get_application_id(client);
-  params = get_application_commands(COMMANDS_FILE);
 
   discord_create_guild_application_command(client, application_id, guild->id,
                                            params, NULL);

@@ -1,11 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 
 #include <orca/discord.h>
 #include <orca/cee-utils.h>
-
-#define COMPONENTS_FILE "mentorship-channel/menu.json"
 
 struct discord_guild *
 get_guild(struct discord *client)
@@ -27,39 +26,36 @@ get_guild(struct discord *client)
   return guild;
 }
 
-struct discord_component **
+struct discord_create_message_params *
 get_components(const char fname[])
 {
-  struct discord_component **components;
+  struct discord_create_message_params *params = NULL;
   size_t fsize = 0;
   char *fcontents;
 
   fcontents = cee_load_whole_file(fname, &fsize);
+  assert(fcontents != NULL && "Missing file");
+  assert(fsize != 0 && "Empty file");
 
-  discord_component_list_from_json(fcontents, fsize, &components);
+  discord_create_message_params_from_json_p(fcontents, fsize, &params);
 
-  return components;
+  return params;
 }
 
 int
 main(int argc, char *argv[])
 {
-  struct discord *client;
+  struct discord_create_message_params *params;
   struct discord_guild *guild;
-  struct discord_component **components;
+  struct discord *client;
 
-  client = discord_config_init((argc > 1) ? argv[1] : "../config.json");
+  assert(argc > 1 && "Expect: ./menu <path>/menu.json <?config_file>");
+
+  client = discord_config_init((argc > 2) ? argv[2] : "../config.json");
   assert(NULL != client && "Couldn't initialize client");
 
   guild = get_guild(client);
-  components = get_components(COMPONENTS_FILE);
+  params = get_components(argv[1]);
 
-  struct discord_create_message_params params = {
-    .content =
-      "** Pick your mentorship channel **\n\n"
-      "If you are just learning C and would specialized support for your "
-      "project, you may create your own channel for that purpose.",
-    .components = components
-  };
-  discord_create_message(client, guild->rules_channel_id, &params, NULL);
+  discord_create_message(client, guild->rules_channel_id, params, NULL);
 }

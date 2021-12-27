@@ -34,7 +34,21 @@ struct async_context {
   u64_snowflake_t application_id;
   /** the interaction token */
   char token[256];
+  /** arbitrary data */
+  void *data;
 };
+
+/**
+ * @brief React to mentorship channel selection menu
+ *
+ * @param client the bot client
+ * @param params the interaction response to be sent at `main.c`
+ * @param interaction the interaction object received
+ */
+void react_mentorship_channel_menu(
+  struct discord *client,
+  struct discord_interaction_response *params,
+  const struct discord_interaction *interaction);
 
 /**
  * @brief React to mentorship channel 'delete' command
@@ -51,15 +65,33 @@ void react_mentorship_channel_delete(
   struct discord_application_command_interaction_data_option **options);
 
 /**
- * @brief React to mentorship channel selection menu
+ * @brief React to mentorship channel configure
  *
  * @param client the bot client
  * @param params the interaction response to be sent at `main.c`
  * @param interaction the interaction object received
+ * @param options the options selected by user
  */
-void react_mentorship_channel_menu(
+void react_mentorship_channel_configure(
   struct discord *client,
   struct discord_interaction_response *params,
-  const struct discord_interaction *interaction);
+  const struct discord_interaction *interaction,
+  struct discord_application_command_interaction_data_option **options);
+
+/******************************************************************************
+ * Utility functions
+ ******************************************************************************/
+
+/**
+ * @brief Check if channel is owned by user
+ *
+ * @param the channel to be checked against
+ * @param mentorship_category_id the mentorship channels category id
+ * @param user_id user to be checked for ownership
+ * @return `true` if channel belongs to user
+ */
+bool is_user_channel(const struct discord_channel *channel,
+                     u64_snowflake_t mentorship_category_id,
+                     u64_snowflake_t user_id);
 
 #endif /* INTERACTIONS_H */

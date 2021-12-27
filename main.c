@@ -37,6 +37,9 @@ on_interaction_create(struct discord *client,
           if (0 == strcmp(cmd, "action")) {
           }
           else if (0 == strcmp(cmd, "configure")) {
+            react_mentorship_channel_configure(
+              client, &params, interaction,
+              interaction->data->options[i]->options);
           }
           else if (0 == strcmp(cmd, "delete")) {
             react_mentorship_channel_delete(

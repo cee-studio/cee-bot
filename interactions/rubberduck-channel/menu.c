@@ -6,7 +6,7 @@
 #include "interactions.h"
 
 static void
-on_mentorship_channel_create(struct discord *ceebot,
+on_rubberduck_channel_create(struct discord *ceebot,
                              struct discord_async_ret *ret)
 {
   struct ceebot_primitives *primitives = discord_get_data(ceebot);
@@ -15,10 +15,10 @@ on_mentorship_channel_create(struct discord *ceebot,
   const struct discord_channel *channel = ret->ret;
   u64_snowflake_t *user_id = ret->data;
 
-  /* assign mentorship role to user */
+  /* assign rubberduck role to user */
   discord_async_next(ceebot, NULL);
   discord_add_guild_member_role(ceebot, primitives->guild_id, *user_id,
-                                primitives->roles.mentorship_id);
+                                primitives->roles.rubberduck_id);
 
   snprintf(welcome_msg, sizeof(welcome_msg),
            "Welcome <@!%" PRIu64 ">, "
@@ -35,7 +35,7 @@ on_mentorship_channel_create(struct discord *ceebot,
 }
 
 void
-react_mentorship_channel_menu(struct discord *ceebot,
+react_rubberduck_channel_menu(struct discord *ceebot,
                               struct discord_interaction_response *params,
                               const struct discord_interaction *interaction)
 {
@@ -45,16 +45,11 @@ react_mentorship_channel_menu(struct discord *ceebot,
   bool priv = false;
 
   /* skip user with already assigned channel */
-  if (member->roles)
-    for (int i = 0; member->roles[i]; ++i) {
-      u64_snowflake_t role_id = member->roles[i]->value;
-
-      if (role_id == primitives->roles.mentorship_id) {
-        params->data->content =
-          "It seems you already have a channel, please edit it from within";
-        return;
-      }
-    }
+  if (is_included_role(member->roles, primitives->roles.rubberduck_id)) {
+    params->data->content =
+      "It seems you already have a channel, please edit it from within";
+    return;
+  }
 
   /* get channel visibility */
   if (interaction->data->values)
@@ -69,7 +64,7 @@ react_mentorship_channel_menu(struct discord *ceebot,
 
   /* create user channel */
   discord_async_next(ceebot, &(struct discord_async_attr){
-                               .done = &on_mentorship_channel_create,
+                               .done = &on_rubberduck_channel_create,
                                .data = user_id,
                                .cleanup = &free });
   discord_create_guild_channel(

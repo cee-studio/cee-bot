@@ -18,9 +18,9 @@
               }
             },
             {
-              "label": "Mentorship channels",
-              "value": "mentorship",
-              "description": "Public mentorship channels will be visible to you",
+              "label": "Rubber duck channels",
+              "value": "watcher",
+              "description": "Public rubber duck channels will be visible to you",
               "emoji": {
                 "name": "👀"
               }
@@ -44,17 +44,7 @@
         {
           "type":3,
           "custom_id": "c-skill-level",
-          "max_values":3,
           "options":[
-            {
-              "label": "I know C",
-              "value": "know-c",
-              "description": "I write C",
-              "emoji": {
-                "name": ":lang_c:",
-                "id": "896443860245413939"
-              }
-            },
             {
               "label": "Beginner",
               "value": "beginner",

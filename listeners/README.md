@@ -15,14 +15,14 @@ Once you are ready, you can come back to this folder and continue:
 3. Run executables with the relative path of the listener JSON to be activated
   * **Example:**
     ```bash
-    $ ./menu mentorship-channel/menu.json
+    $ ./menu rubberduck-channel/menu.json
     ```
 
 # Listeners Listing
 
-## [mentorship-channel/](mentorship-channel/)
-### [`menu.json`](mentorship-channel/menu.json) - Initialize the channel-create menu message to guild's `#rules` channel
-### [`cmd.json`](mentorship-channel/cmd.json) - Set the application commands the users may use for editing their channel
+## [rubberduck-channel/](rubberduck-channel/)
+### [`menu.json`](rubberduck-channel/menu.json) - Initialize the channel-create menu message to guild's `#rules` channel
+### [`cmd.json`](rubberduck-channel/cmd.json) - Set the application commands the users may use for editing their channel
 
 ## [select-roles/](select-roles/)
 ### [`menu.json`](select-roles/menu.json) - Initialize the role-picking menu message to guild's `#rules` channel

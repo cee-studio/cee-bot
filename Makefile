@@ -3,7 +3,7 @@ CC ?= gcc
 INTERACTIONSDIR := interactions
 OBJDIR := obj
 
-SRC := $(wildcard $(INTERACTIONSDIR)/**/*.c)
+SRC := $(INTERACTIONSDIR)/utils.c $(wildcard $(INTERACTIONSDIR)/**/*.c)
 OBJS := $(SRC:$(INTERACTIONSDIR)/%.c=$(OBJDIR)/%.o)
 
 MAIN := main

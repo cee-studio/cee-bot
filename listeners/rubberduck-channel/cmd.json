@@ -1,6 +1,6 @@
 {
   "name": "mychannel",
-  "description": "Mentorship channel commands",
+  "description": "Rubber duck channel commands",
   "type": 1,
   "default_permission": true,
   "options": [

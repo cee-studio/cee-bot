@@ -40,12 +40,12 @@ on_interaction_create(struct discord *ceebot,
           if (0 == strcmp(cmd, "action")) {
           }
           else if (0 == strcmp(cmd, "configure")) {
-            react_mentorship_channel_configure(
+            react_rubberduck_channel_configure(
               ceebot, &params, interaction,
               interaction->data->options[i]->options);
           }
           else if (0 == strcmp(cmd, "delete")) {
-            react_mentorship_channel_delete(
+            react_rubberduck_channel_delete(
               ceebot, &params, interaction,
               interaction->data->options[i]->options);
           }
@@ -53,8 +53,8 @@ on_interaction_create(struct discord *ceebot,
     }
     break;
   case DISCORD_INTERACTION_MESSAGE_COMPONENT:
-    if (0 == strcmp(interaction->data->custom_id, "create-mentorship-channel"))
-      react_mentorship_channel_menu(ceebot, &params, interaction);
+    if (0 == strcmp(interaction->data->custom_id, "create-channel"))
+      react_rubberduck_channel_menu(ceebot, &params, interaction);
     break;
   default:
     log_error("%s (%d) is not dealt with",
@@ -97,17 +97,21 @@ ceebot_get_primitives(struct discord *ceebot)
   json = logconf_get_field(conf, "cee_bot.guild_id");
   primitives.guild_id = strtoull(json.start, NULL, 10);
 
-  /* get mentorship channels category id */
+  /* get rubberduck channels category id */
   json = logconf_get_field(conf, "cee_bot.category_id");
   primitives.category_id = strtoull(json.start, NULL, 10);
 
   /* get roles */
-  json = logconf_get_field(conf, "cee_bot.roles.mentorship_id");
-  primitives.roles.mentorship_id = strtoull(json.start, NULL, 10);
+  json = logconf_get_field(conf, "cee_bot.roles.rubberduck_id");
+  primitives.roles.rubberduck_id = strtoull(json.start, NULL, 10);
   json = logconf_get_field(conf, "cee_bot.roles.helper_id");
   primitives.roles.helper_id = strtoull(json.start, NULL, 10);
   json = logconf_get_field(conf, "cee_bot.roles.lurker_id");
   primitives.roles.lurker_id = strtoull(json.start, NULL, 10);
+  json = logconf_get_field(conf, "cee_bot.roles.watcher_id");
+  primitives.roles.watcher_id = strtoull(json.start, NULL, 10);
+  json = logconf_get_field(conf, "cee_bot.roles.announcements_id");
+  primitives.roles.announcements_id = strtoull(json.start, NULL, 10);
 
   return primitives;
 }
@@ -124,11 +128,10 @@ main(int argc, char *argv[])
   assert(NULL != ceebot && "Couldn't initialize client");
 
   primitives = ceebot_get_primitives(ceebot);
+  discord_set_data(ceebot, &primitives);
 
   discord_set_on_ready(ceebot, &on_ready);
   discord_set_on_interaction_create(ceebot, &on_interaction_create);
-
-  discord_set_data(ceebot, &primitives);
 
   discord_run(ceebot);
 

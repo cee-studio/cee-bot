@@ -13,10 +13,12 @@ struct context {
   u64_snowflake_t application_id;
   /** the interaction token */
   char token[256];
+  /** whether rubberduck channel is private */
+  bool priv;
 };
 
 static void
-mentorship_channel_delete(struct discord *ceebot,
+rubberduck_channel_modify(struct discord *ceebot,
                           struct discord_async_ret *ret)
 {
   struct discord_edit_original_interaction_response_params params = { 0 };
@@ -29,19 +31,16 @@ mentorship_channel_delete(struct discord *ceebot,
                      "from your channel.";
   }
   else {
-    /* delete user channel */
+    /* edit user channel */
     discord_async_next(ceebot, NULL);
-    discord_delete_channel(ceebot, channel->id, NULL);
+    discord_edit_channel_permissions(
+      ceebot, channel->id, primitives->roles.lurker_id,
+      &(struct discord_edit_channel_permissions_params){
+        .type = 0,
+        .allow = cxt->priv ? 0 : PERMS_DEFAULT,
+      });
 
-    /* remove mentorship role from user */
-    discord_async_next(ceebot, NULL);
-    discord_remove_guild_member_role(ceebot, primitives->guild_id,
-                                     cxt->user_id,
-                                     primitives->roles.mentorship_id);
-
-    log_info("Remove mentorship role from %" PRIu64, cxt->user_id);
-
-    params.content = "Channel has been deleted succesfully";
+    params.content = "Channel visibility has been changed succesfully";
   }
 
   discord_async_next(ceebot, NULL);
@@ -50,45 +49,36 @@ mentorship_channel_delete(struct discord *ceebot,
 }
 
 void
-react_mentorship_channel_delete(
+react_rubberduck_channel_configure(
   struct discord *ceebot,
   struct discord_interaction_response *params,
   const struct discord_interaction *interaction,
   struct discord_application_command_interaction_data_option **options)
 {
   struct discord_guild_member *member = interaction->member;
-  bool confirm_action = false;
-  char *reason = NULL;
+  char *visibility = NULL;
 
   if (options)
     for (int i = 0; options[i]; ++i) {
       char *name = options[i]->name;
       char *value = options[i]->value;
 
-      if (0 == strcmp(name, "confirm"))
-        confirm_action = (0 == strcmp(value, "yes"));
-      else if (0 == strcmp(name, "reason"))
-        reason = value;
+      if (0 == strcmp(name, "visibility")) visibility = value;
     }
 
-  if (!confirm_action) {
+  if (!visibility) {
     params->data->content = "No operation will be taking place.";
     return;
-  }
-
-  /* TODO: post to a logging channel */
-  if (reason) {
-    log_info("User %" PRIu64 " channel deletion reason: %s", member->user->id,
-             reason);
   }
 
   struct context *cxt = malloc(sizeof *cxt);
   cxt->user_id = member->user->id;
   cxt->application_id = interaction->application_id;
   snprintf(cxt->token, sizeof(cxt->token), "%s", interaction->token);
+  cxt->priv = (0 == strcmp(visibility, "private"));
 
   discord_async_next(ceebot, &(struct discord_async_attr){
-                               .done = &mentorship_channel_delete,
+                               .done = &rubberduck_channel_modify,
                                .data = cxt,
                                .cleanup = &free,
                              });

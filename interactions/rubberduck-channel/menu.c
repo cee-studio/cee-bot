@@ -77,25 +77,26 @@ react_rubberduck_channel_menu(struct discord *ceebot,
           &(struct discord_overwrite){
             .id = *user_id,
             .type = 1,
-            .allow = PERMS_DEFAULT,
+            .allow = PERMS_READ | PERMS_WRITE,
           },
           /* give read/write permission for @helper */
           &(struct discord_overwrite){
             .id = primitives->roles.helper_id,
             .type = 0,
-            .allow = PERMS_DEFAULT,
+            .allow = PERMS_READ | PERMS_WRITE,
           },
           /* hide it from @watcher only if 'priv' has been set */
           &(struct discord_overwrite){
             .id = primitives->roles.watcher_id,
             .type = 0,
-            .allow = priv ? 0 : PERMS_DEFAULT,
+            .allow = priv ? 0 : PERMS_READ,
           },
-          /* hide it from @everyone */
+          /* give write permissions to @everyone (not read) */
           &(struct discord_overwrite){
             .id = primitives->guild_id,
             .type = 0,
-            .deny = PERMS_ALL,
+            .deny = PERMS_READ,
+            .allow = PERMS_WRITE,
           },
           NULL, /* END OF OVERWRITE LIST */
         },

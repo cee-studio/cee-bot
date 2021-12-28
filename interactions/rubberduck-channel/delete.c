@@ -24,7 +24,9 @@ rubberduck_channel_delete(struct discord *ceebot,
   const struct discord_channel *channel = ret->ret;
   struct context *cxt = ret->data;
 
-  if (!is_user_channel(channel, primitives->category_id, cxt->user_id)) {
+  if (!is_user_rubberduck_channel(channel, primitives->category_id,
+                                  cxt->user_id))
+  {
     params.content = "Couldn't complete operation. Make sure to use command "
                      "from your channel.";
   }
@@ -77,14 +79,14 @@ react_rubberduck_channel_delete(
   }
 
   /* TODO: post to a logging channel */
-  if (reason) {
-    log_info("User %" PRIu64 " channel deletion reason: %s", member->user->id,
-             reason);
-  }
+  log_info("User '%s#%s' rubberduck channel deletion (%s)",
+           member->user->username, member->user->discriminator, reason);
 
   struct context *cxt = malloc(sizeof *cxt);
-  cxt->user_id = member->user->id;
-  cxt->application_id = interaction->application_id;
+  *cxt = (struct context){
+    .user_id = member->user->id,
+    .application_id = interaction->application_id
+  };
   snprintf(cxt->token, sizeof(cxt->token), "%s", interaction->token);
 
   discord_async_next(ceebot, &(struct discord_async_attr){

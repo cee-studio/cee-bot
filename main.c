@@ -38,6 +38,9 @@ on_interaction_create(struct discord *ceebot,
           char *cmd = interaction->data->options[i]->name;
 
           if (0 == strcmp(cmd, "action")) {
+            react_rubberduck_channel_action(
+              ceebot, &params, interaction,
+              interaction->data->options[i]->options);
           }
           else if (0 == strcmp(cmd, "configure")) {
             react_rubberduck_channel_configure(
@@ -55,7 +58,8 @@ on_interaction_create(struct discord *ceebot,
   case DISCORD_INTERACTION_MESSAGE_COMPONENT:
     if (0 == strcmp(interaction->data->custom_id, "create-channel"))
       react_rubberduck_channel_menu(ceebot, &params, interaction);
-    else if (0 == strcmp(interaction->data->custom_id, "channel-subscriptions"))
+    else if (0
+             == strcmp(interaction->data->custom_id, "channel-subscriptions"))
       react_select_subscriptions_menu(ceebot, &params, interaction);
     else if (0 == strcmp(interaction->data->custom_id, "skill-level"))
       react_select_skill_level(ceebot, &params, interaction);

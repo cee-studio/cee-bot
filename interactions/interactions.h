@@ -1,8 +1,10 @@
 #ifndef INTERACTIONS_H
 #define INTERACTIONS_H
 
-/* see https://discordapi.com/permissions.html#377957256256 */
-#define PERMS_DEFAULT (377957256256)
+/* see https://discordapi.com/permissions.html#1024 */
+#define PERMS_READ (1024)
+/* see https://discordapi.com/permissions.html#448824526912 */
+#define PERMS_WRITE (448824526912)
 /* all bits set */
 #define PERMS_ALL ((enum discord_bitwise_permission_flags) - 1)
 
@@ -65,6 +67,20 @@ void react_select_skill_level(struct discord *ceebot,
                               const struct discord_interaction *interaction);
 
 /**
+ * @brief React to rubberduck channel 'action' command
+ *
+ * @param client the bot client
+ * @param params the interaction response to be sent at `main.c`
+ * @param interaction the interaction object received
+ * @param options the options selected by user
+ */
+void react_rubberduck_channel_action(
+  struct discord *ceebot,
+  struct discord_interaction_response *params,
+  const struct discord_interaction *interaction,
+  struct discord_application_command_interaction_data_option **options);
+
+/**
  * @brief React to rubberduck channel 'delete' command
  *
  * @param client the bot client
@@ -97,16 +113,16 @@ void react_rubberduck_channel_configure(
  ******************************************************************************/
 
 /**
- * @brief Check if channel is owned by user
+ * @brief Check if is a rubber duck channel owned by user
  *
  * @param the channel to be checked against
  * @param rubberduck_category_id the rubberduck channels category id
  * @param user_id user to be checked for ownership
  * @return `true` if channel belongs to user
  */
-bool is_user_channel(const struct discord_channel *channel,
-                     u64_snowflake_t rubberduck_category_id,
-                     u64_snowflake_t user_id);
+bool is_user_rubberduck_channel(const struct discord_channel *channel,
+                                u64_snowflake_t rubberduck_category_id,
+                                u64_snowflake_t user_id);
 
 /**
  * @brief Check if role is included in list

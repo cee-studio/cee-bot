@@ -26,7 +26,9 @@ rubberduck_channel_modify(struct discord *ceebot,
   const struct discord_channel *channel = ret->ret;
   struct context *cxt = ret->data;
 
-  if (!is_user_channel(channel, primitives->category_id, cxt->user_id)) {
+  if (!is_user_rubberduck_channel(channel, primitives->category_id,
+                                  cxt->user_id))
+  {
     params.content = "Couldn't complete operation. Make sure to use command "
                      "from your channel.";
   }
@@ -37,7 +39,7 @@ rubberduck_channel_modify(struct discord *ceebot,
       ceebot, channel->id, primitives->roles.watcher_id,
       &(struct discord_edit_channel_permissions_params){
         .type = 0,
-        .allow = cxt->priv ? 0 : PERMS_DEFAULT,
+        .allow = cxt->priv ? 0 : PERMS_READ,
       });
 
     params.content = "Channel visibility has been changed succesfully";

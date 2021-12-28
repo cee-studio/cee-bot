@@ -3,9 +3,9 @@
 #include "interactions.h"
 
 bool
-is_user_channel(const struct discord_channel *channel,
-                u64_snowflake_t rubberduck_category_id,
-                u64_snowflake_t user_id)
+is_user_rubberduck_channel(const struct discord_channel *channel,
+                           u64_snowflake_t rubberduck_category_id,
+                           u64_snowflake_t user_id)
 {
   if (channel->permission_overwrites)
     for (int i = 0; channel->permission_overwrites[i]; ++i)

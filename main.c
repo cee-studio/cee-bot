@@ -55,6 +55,10 @@ on_interaction_create(struct discord *ceebot,
   case DISCORD_INTERACTION_MESSAGE_COMPONENT:
     if (0 == strcmp(interaction->data->custom_id, "create-channel"))
       react_rubberduck_channel_menu(ceebot, &params, interaction);
+    else if (0 == strcmp(interaction->data->custom_id, "channel-subscriptions"))
+      react_select_subscriptions_menu(ceebot, &params, interaction);
+    else if (0 == strcmp(interaction->data->custom_id, "skill-level"))
+      react_select_skill_level(ceebot, &params, interaction);
     break;
   default:
     log_error("%s (%d) is not dealt with",
@@ -106,12 +110,12 @@ ceebot_get_primitives(struct discord *ceebot)
   primitives.roles.rubberduck_id = strtoull(json.start, NULL, 10);
   json = logconf_get_field(conf, "cee_bot.roles.helper_id");
   primitives.roles.helper_id = strtoull(json.start, NULL, 10);
-  json = logconf_get_field(conf, "cee_bot.roles.lurker_id");
-  primitives.roles.lurker_id = strtoull(json.start, NULL, 10);
   json = logconf_get_field(conf, "cee_bot.roles.watcher_id");
   primitives.roles.watcher_id = strtoull(json.start, NULL, 10);
   json = logconf_get_field(conf, "cee_bot.roles.announcements_id");
   primitives.roles.announcements_id = strtoull(json.start, NULL, 10);
+  json = logconf_get_field(conf, "cee_bot.roles.beginner_id");
+  primitives.roles.beginner_id = strtoull(json.start, NULL, 10);
 
   return primitives;
 }

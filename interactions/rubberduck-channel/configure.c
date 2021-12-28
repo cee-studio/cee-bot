@@ -34,7 +34,7 @@ rubberduck_channel_modify(struct discord *ceebot,
     /* edit user channel */
     discord_async_next(ceebot, NULL);
     discord_edit_channel_permissions(
-      ceebot, channel->id, primitives->roles.lurker_id,
+      ceebot, channel->id, primitives->roles.watcher_id,
       &(struct discord_edit_channel_permissions_params){
         .type = 0,
         .allow = cxt->priv ? 0 : PERMS_DEFAULT,

@@ -85,9 +85,9 @@ react_rubberduck_channel_menu(struct discord *ceebot,
             .type = 0,
             .allow = PERMS_DEFAULT,
           },
-          /* hide it from @lurker only if 'priv' has been set */
+          /* hide it from @watcher only if 'priv' has been set */
           &(struct discord_overwrite){
-            .id = primitives->roles.lurker_id,
+            .id = primitives->roles.watcher_id,
             .type = 0,
             .allow = priv ? 0 : PERMS_DEFAULT,
           },

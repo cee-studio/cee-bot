@@ -6,9 +6,9 @@
 #include "interactions.h"
 
 void
-react_select_roles_menu(struct discord *ceebot,
-                        struct discord_interaction_response *params,
-                        const struct discord_interaction *interaction)
+react_select_subscriptions_menu(struct discord *ceebot,
+                                struct discord_interaction_response *params,
+                                const struct discord_interaction *interaction)
 {
   struct ceebot_primitives *primitives = discord_get_data(ceebot);
   struct discord_guild_member *member = interaction->member;
@@ -49,5 +49,45 @@ react_select_roles_menu(struct discord *ceebot,
                                     member->user->id, roles[i]);
     }
     params->data->content = "Your subscriptions have been registered";
+  }
+}
+
+void
+react_select_skill_level(struct discord *ceebot,
+                         struct discord_interaction_response *params,
+                         const struct discord_interaction *interaction)
+{
+  struct ceebot_primitives *primitives = discord_get_data(ceebot);
+  struct discord_guild_member *member = interaction->member;
+  u64_snowflake_t roles[2] = { 0 };
+  bool is_reset = false;
+
+  /* get channel visibility */
+  if (interaction->data->values)
+    for (int i = 0, j = 0; interaction->data->values[i]; ++i) {
+      char *value = interaction->data->values[i]->value;
+
+      if (0 == strcmp(value, "beginner"))
+        roles[j++] = primitives->roles.beginner_id;
+      else if (0 == strcmp(value, "reset"))
+        is_reset = true;
+    }
+
+  if (is_reset) {
+    discord_async_next(ceebot, NULL);
+    discord_remove_guild_member_role(ceebot, interaction->guild_id,
+                                     member->user->id,
+                                     primitives->roles.beginner_id);
+    params->data->content = "Your skill level has been reset";
+  }
+  else {
+    const int arr_size = sizeof(roles) / sizeof(u64_snowflake_t);
+
+    for (int i = 0; roles[i] && i < arr_size; ++i) {
+      discord_async_next(ceebot, NULL);
+      discord_add_guild_member_role(ceebot, interaction->guild_id,
+                                    member->user->id, roles[i]);
+    }
+    params->data->content = "Your skill level has been set";
   }
 }

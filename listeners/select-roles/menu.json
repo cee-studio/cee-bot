@@ -22,7 +22,8 @@
               "value": "watcher",
               "description": "Public rubber duck channels will be visible to you",
               "emoji": {
-                "name": "👀"
+                "name": ":rubberduck:",
+                "id": "925212910173696010"
               }
             },
             {
@@ -43,7 +44,7 @@
       "components": [
         {
           "type":3,
-          "custom_id": "c-skill-level",
+          "custom_id": "skill-level",
           "options":[
             {
               "label": "Beginner",

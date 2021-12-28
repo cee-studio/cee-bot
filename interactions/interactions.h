@@ -4,7 +4,7 @@
 /* see https://discordapi.com/permissions.html#377957256256 */
 #define PERMS_DEFAULT (377957256256)
 /* all bits set */
-#define PERMS_ALL     ((enum discord_bitwise_permission_flags) - 1)
+#define PERMS_ALL ((enum discord_bitwise_permission_flags) - 1)
 
 /** @brief The client environment to work with */
 struct ceebot_primitives {
@@ -20,14 +20,12 @@ struct ceebot_primitives {
      *        rubberduck channels
      */
     u64_snowflake_t helper_id;
-    /**
-     * role for users that have read/write access to public rubberduck channels
-     */
-    u64_snowflake_t lurker_id;
     /** role for users that want to make public rubberduck channels visible */
     u64_snowflake_t watcher_id;
     /** role for users that want to subscribe to guild announcements */
     u64_snowflake_t announcements_id;
+    /** role for users that are C beginners */
+    u64_snowflake_t beginner_id;
   } roles;
 };
 
@@ -42,6 +40,29 @@ void react_rubberduck_channel_menu(
   struct discord *client,
   struct discord_interaction_response *params,
   const struct discord_interaction *interaction);
+
+/**
+ * @brief React to channel subscriptions selection menu
+ *
+ * @param client the bot client
+ * @param params the interaction response to be sent at `main.c`
+ * @param interaction the interaction object received
+ */
+void react_select_subscriptions_menu(
+  struct discord *ceebot,
+  struct discord_interaction_response *params,
+  const struct discord_interaction *interaction);
+
+/**
+ * @brief React to skill level selection menu
+ *
+ * @param client the bot client
+ * @param params the interaction response to be sent at `main.c`
+ * @param interaction the interaction object received
+ */
+void react_select_skill_level(struct discord *ceebot,
+                              struct discord_interaction_response *params,
+                              const struct discord_interaction *interaction);
 
 /**
  * @brief React to rubberduck channel 'delete' command

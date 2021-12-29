@@ -11,21 +11,61 @@ struct context {
   u64_snowflake_t user_id;
   /** the client's application id */
   u64_snowflake_t application_id;
-  /** the user to be muted or unmuted */
-  u64_snowflake_t target_id;
   /** the interaction token */
   char token[256];
+  /** the user to be muted or unmuted */
+  u64_snowflake_t target_id;
+  /**
+   * permissions to be denied from user
+   *  - PERMS_WRITE: User will have his write access to channel revoked
+   *  - 0: User won't be denied write access
+   */
+  enum discord_bitwise_permission_flags perms;
 };
 
 static void
-rubberduck_channel_unmute(struct discord *ceebot,
-                          struct discord_async_ret *ret)
+done_edit_permissions(struct discord *ceebot, struct discord_async_ret *ret)
 {
+  struct context *cxt = ret->data;
   char diagnosis[256];
-  struct discord_edit_original_interaction_response_params params = {
-    .content = diagnosis
-  };
 
+  snprintf(diagnosis, sizeof(diagnosis),
+           "Completed action targeted to <@!%" PRIu64 ">.", cxt->target_id);
+
+  discord_async_next(ceebot, NULL);
+  discord_edit_original_interaction_response(
+    ceebot, cxt->application_id, cxt->token,
+    &(struct discord_edit_original_interaction_response_params){
+      .content = diagnosis,
+    },
+    NULL);
+
+  free(cxt);
+}
+
+static void
+fail_edit_permissions(struct discord *ceebot, struct discord_async_err *err)
+{
+  struct context *cxt = err->data;
+  char diagnosis[256];
+
+  snprintf(diagnosis, sizeof(diagnosis),
+           "Failed action targeted to <@!%" PRIu64 ">", cxt->target_id);
+
+  discord_async_next(ceebot, NULL);
+  discord_edit_original_interaction_response(
+    ceebot, cxt->application_id, cxt->token,
+    &(struct discord_edit_original_interaction_response_params){
+      .content = diagnosis,
+    },
+    NULL);
+
+  free(cxt);
+}
+
+static void
+done_get_channel(struct discord *ceebot, struct discord_async_ret *ret)
+{
   struct ceebot_primitives *primitives = discord_get_data(ceebot);
   const struct discord_channel *channel = ret->ret;
   struct context *cxt = ret->data;
@@ -33,39 +73,38 @@ rubberduck_channel_unmute(struct discord *ceebot,
   if (!is_user_rubberduck_channel(channel, primitives->category_id,
                                   cxt->user_id))
   {
-    snprintf(diagnosis, sizeof(diagnosis),
-             "Couldn't complete operation. Make sure to use command from your "
-             "channel.");
-  }
-  else {
-    /* allow write permission for user */
     discord_async_next(ceebot, NULL);
-    discord_edit_channel_permissions(
-      ceebot, channel->id, cxt->target_id,
-      &(struct discord_edit_channel_permissions_params){
-        .type = 1,
-        .deny = 0,
-      });
+    discord_edit_original_interaction_response(
+      ceebot, cxt->application_id, cxt->token,
+      &(struct discord_edit_original_interaction_response_params){
+        .content = "Couldn't complete operation. Make sure to use "
+                   "`/mycommand` from your channel",
+      },
+      NULL);
 
-    snprintf(diagnosis, sizeof(diagnosis),
-             "<@!%" PRIu64 "> has been unmuted from channel '%s'.",
-             cxt->target_id, channel->name);
+    free(cxt);
+    return;
   }
 
-  discord_async_next(ceebot, NULL);
-  discord_edit_original_interaction_response(ceebot, cxt->application_id,
-                                             cxt->token, &params, NULL);
+  discord_async_next(ceebot, &(struct discord_async_attr){
+                               .done = &done_edit_permissions,
+                               .fail = &fail_edit_permissions,
+                               .data = cxt,
+                             });
+  discord_edit_channel_permissions(
+    ceebot, channel->id, cxt->target_id,
+    &(struct discord_edit_channel_permissions_params){
+      .type = 1,
+      .deny = cxt->perms,
+    });
 }
 
-static void
-rubberduck_channel_action_unmute(
-  const struct discord_interaction *interaction,
-  struct discord_application_command_interaction_data_option **options,
-  struct discord_async_attr *attr)
+static u64_snowflake_t
+get_unmute_target(
+  struct discord_guild_member *member,
+  struct discord_application_command_interaction_data_option **options)
 {
-  struct discord_guild_member *member = interaction->member;
   u64_snowflake_t target_id = 0ULL;
-  char *reason = NULL;
 
   if (options)
     for (int i = 0; options[i]; ++i) {
@@ -76,70 +115,17 @@ rubberduck_channel_action_unmute(
     }
 
   /* TODO: post to a logging channel */
-  log_info("User ID %" PRIu64 " unmuted by %s#%s (%s)", target_id,
-           member->user->username, member->user->discriminator, reason);
+  log_info("Attempt to unmute user(%" PRIu64 ") by %s#%s", target_id,
+           member->user->username, member->user->discriminator);
 
-  struct context *cxt = malloc(sizeof *cxt);
-  *cxt = (struct context){
-    .user_id = member->user->id,
-    .application_id = interaction->application_id,
-    .target_id = target_id,
-  };
-  snprintf(cxt->token, sizeof(cxt->token), "%s", interaction->token);
-
-  *attr = (struct discord_async_attr){
-    .done = &rubberduck_channel_unmute,
-    .data = cxt,
-    .cleanup = &free,
-  };
+  return target_id;
 }
 
-static void
-rubberduck_channel_mute(struct discord *ceebot, struct discord_async_ret *ret)
+static u64_snowflake_t
+get_mute_target(
+  struct discord_guild_member *member,
+  struct discord_application_command_interaction_data_option **options)
 {
-  char diagnosis[256];
-  struct discord_edit_original_interaction_response_params params = {
-    .content = diagnosis
-  };
-
-  struct ceebot_primitives *primitives = discord_get_data(ceebot);
-  const struct discord_channel *channel = ret->ret;
-  struct context *cxt = ret->data;
-
-  if (!is_user_rubberduck_channel(channel, primitives->category_id,
-                                  cxt->user_id))
-  {
-    snprintf(diagnosis, sizeof(diagnosis),
-             "Couldn't complete operation. Make sure to use command from your "
-             "channel.");
-  }
-  else {
-    /* remove write permission from user */
-    discord_async_next(ceebot, NULL);
-    discord_edit_channel_permissions(
-      ceebot, channel->id, cxt->target_id,
-      &(struct discord_edit_channel_permissions_params){
-        .type = 1,
-        .deny = PERMS_WRITE,
-      });
-
-    snprintf(diagnosis, sizeof(diagnosis),
-             "<@!%" PRIu64 "> has been muted from channel '%s'.",
-             cxt->target_id, channel->name);
-  }
-
-  discord_async_next(ceebot, NULL);
-  discord_edit_original_interaction_response(ceebot, cxt->application_id,
-                                             cxt->token, &params, NULL);
-}
-
-static void
-rubberduck_channel_action_mute(
-  const struct discord_interaction *interaction,
-  struct discord_application_command_interaction_data_option **options,
-  struct discord_async_attr *attr)
-{
-  struct discord_guild_member *member = interaction->member;
   u64_snowflake_t target_id = 0ULL;
   char *reason = NULL;
 
@@ -155,22 +141,10 @@ rubberduck_channel_action_mute(
     }
 
   /* TODO: post to a logging channel */
-  log_info("User ID %" PRIu64 " muted by %s#%s (%s)", target_id,
+  log_info("Attempt to mute user(%" PRIu64 ") by %s#%s (%s)", target_id,
            member->user->username, member->user->discriminator, reason);
 
-  struct context *cxt = malloc(sizeof *cxt);
-  *cxt = (struct context){
-    .user_id = member->user->id,
-    .application_id = interaction->application_id,
-    .target_id = target_id,
-  };
-  snprintf(cxt->token, sizeof(cxt->token), "%s", interaction->token);
-
-  *attr = (struct discord_async_attr){
-    .done = &rubberduck_channel_mute,
-    .data = cxt,
-    .cleanup = &free,
-  };
+  return target_id;
 }
 
 void
@@ -180,21 +154,40 @@ react_rubberduck_channel_action(
   const struct discord_interaction *interaction,
   struct discord_application_command_interaction_data_option **options)
 {
-  struct discord_async_attr attr = { 0 };
+  struct discord_guild_member *member = interaction->member;
+
+  enum discord_bitwise_permission_flags perms;
+  u64_snowflake_t target_id = 0ULL;
 
   if (options)
     for (int i = 0; options[i]; ++i) {
       char *name = options[i]->name;
 
-      if (0 == strcmp(name, "mute"))
-        rubberduck_channel_action_mute(interaction, options[i]->options,
-                                       &attr);
-      else if (0 == strcmp(name, "unmute"))
-        rubberduck_channel_action_unmute(interaction, options[i]->options,
-                                         &attr);
+      if (0 == strcmp(name, "mute")) {
+        target_id = get_mute_target(interaction->member, options[i]->options);
+        perms = PERMS_WRITE;
+      }
+      else if (0 == strcmp(name, "unmute")) {
+        target_id =
+          get_unmute_target(interaction->member, options[i]->options);
+        perms = 0;
+      }
     }
 
-  discord_async_next(ceebot, &attr);
+  struct context *cxt = malloc(sizeof *cxt);
+  *cxt = (struct context){
+    .user_id = member->user->id,
+    .application_id = interaction->application_id,
+    .target_id = target_id,
+    .perms = perms,
+  };
+  snprintf(cxt->token, sizeof(cxt->token), "%s", interaction->token);
+
+  discord_async_next(ceebot, &(struct discord_async_attr){
+                               .done = done_get_channel,
+                               .fail = fail_edit_permissions,
+                               .data = cxt,
+                             });
   discord_get_channel(ceebot, interaction->channel_id, NULL);
 
   params->type =

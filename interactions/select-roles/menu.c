@@ -12,7 +12,8 @@ react_select_subscriptions_menu(struct discord *ceebot,
 {
   struct ceebot_primitives *primitives = discord_get_data(ceebot);
   struct discord_guild_member *member = interaction->member;
-  u64_snowflake_t roles[2] = { 0 };
+
+  u64_snowflake_t roles[3] = { 0 };
   bool is_reset = false;
 
   /* get channel visibility */
@@ -59,6 +60,7 @@ react_select_skill_level(struct discord *ceebot,
 {
   struct ceebot_primitives *primitives = discord_get_data(ceebot);
   struct discord_guild_member *member = interaction->member;
+
   u64_snowflake_t roles[2] = { 0 };
   bool is_reset = false;
 

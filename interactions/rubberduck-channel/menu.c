@@ -5,33 +5,135 @@
 
 #include "interactions.h"
 
+/** @brief Per-request context storage for async functions */
+struct context {
+  /** the user that triggered the interaction */
+  u64_snowflake_t user_id;
+  /** the username for channel creation */
+  char username[256];
+  /** the client's application id */
+  u64_snowflake_t application_id;
+  /** the interaction token */
+  char token[256];
+  /** whether the channel is private or public */
+  bool priv;
+};
+
 static void
-on_rubberduck_channel_create(struct discord *ceebot,
-                             struct discord_async_ret *ret)
+done_create_channel(struct discord *ceebot, struct discord_async_ret *ret)
 {
-  struct ceebot_primitives *primitives = discord_get_data(ceebot);
-  char welcome_msg[DISCORD_MAX_MESSAGE_LEN] = "";
-
   const struct discord_channel *channel = ret->ret;
-  u64_snowflake_t *user_id = ret->data;
+  struct context *cxt = ret->data;
 
-  /* assign rubberduck role to user */
-  discord_async_next(ceebot, NULL);
-  discord_add_guild_member_role(ceebot, primitives->guild_id, *user_id,
-                                primitives->roles.rubberduck_id);
+  char welcome_msg[DISCORD_MAX_MESSAGE_LEN];
 
   snprintf(welcome_msg, sizeof(welcome_msg),
            "Welcome <@!%" PRIu64 ">, "
            "I hope you enjoy your new space! Check your available commands by "
            "typing `/mychannel` for further channel customization!",
-           *user_id);
-
+           cxt->user_id);
   discord_async_next(ceebot, NULL);
   discord_create_message(ceebot, channel->id,
                          &(struct discord_create_message_params){
                            .content = welcome_msg,
                          },
                          NULL);
+
+  discord_async_next(ceebot, NULL);
+  discord_edit_original_interaction_response(
+    ceebot, cxt->application_id, cxt->token,
+    &(struct discord_edit_original_interaction_response_params){
+      .content = "Your channel has been created!",
+    },
+    NULL);
+}
+
+static void
+fail_create_channel(struct discord *ceebot, struct discord_async_err *err)
+{
+  struct context *cxt = err->data;
+
+  discord_async_next(ceebot, NULL);
+  discord_edit_original_interaction_response(
+    ceebot, cxt->application_id, cxt->token,
+    &(struct discord_edit_original_interaction_response_params){
+      .content = "Couldn't create channel, please report to our staff.",
+    },
+    NULL);
+}
+
+static void
+done_role_add(struct discord *ceebot, struct discord_async_ret *ret)
+{
+  struct ceebot_primitives *primitives = discord_get_data(ceebot);
+  struct context *cxt = ret->data;
+
+  /* create user channel */
+  discord_async_next(ceebot, &(struct discord_async_attr){
+                               .done = done_create_channel,
+                               .fail = fail_create_channel,
+                               .data = cxt,
+                               .cleanup = &free,
+                             });
+  discord_create_guild_channel(
+    ceebot, primitives->guild_id,
+    &(struct discord_create_guild_channel_params){
+      .name = cxt->username,
+      .permission_overwrites =
+        (struct discord_overwrite *[]){
+          /* give read/write permission for user */
+          &(struct discord_overwrite){
+            .id = cxt->user_id,
+            .type = 1,
+            .allow = PERMS_READ | PERMS_WRITE,
+          },
+          /* give read/write permission for @helper */
+          &(struct discord_overwrite){
+            .id = primitives->roles.helper_id,
+            .type = 0,
+            .allow = PERMS_READ | PERMS_WRITE,
+          },
+          /* hide it from @watcher only if 'priv' has been set */
+          &(struct discord_overwrite){
+            .id = primitives->roles.watcher_id,
+            .type = 0,
+            .allow = cxt->priv ? 0 : PERMS_READ,
+          },
+          /* give write permissions to @everyone (not read) */
+          &(struct discord_overwrite){
+            .id = primitives->guild_id,
+            .type = 0,
+            .deny = PERMS_READ,
+            .allow = PERMS_WRITE,
+          },
+          NULL, /* END OF OVERWRITE LIST */
+        },
+      .parent_id = primitives->category_id,
+    },
+    NULL);
+}
+
+static void
+fail_role_add(struct discord *ceebot, struct discord_async_err *err)
+{
+  struct ceebot_primitives *primitives = discord_get_data(ceebot);
+  struct context *cxt = err->data;
+
+  char diagnosis[256];
+
+  snprintf(diagnosis, sizeof(diagnosis),
+           "Couldn't assign role <@&%" PRIu64 ">, please report to our staff.",
+           primitives->roles.rubberduck_id);
+
+  discord_async_next(ceebot, NULL);
+  discord_edit_original_interaction_response(
+    ceebot, cxt->application_id, cxt->token,
+    &(struct discord_edit_original_interaction_response_params){
+      .content = diagnosis,
+    },
+    NULL);
+
+  free(cxt);
 }
 
 void
@@ -59,50 +161,24 @@ react_rubberduck_channel_menu(struct discord *ceebot,
       if (0 == strcmp(value, "private")) priv = true;
     }
 
-  u64_snowflake_t *user_id = malloc(sizeof(u64_snowflake_t));
-  *user_id = member->user->id;
+  struct context *cxt = malloc(sizeof *cxt);
+  *cxt = (struct context){
+    .user_id = member->user->id,
+    .application_id = interaction->application_id,
+    .priv = priv,
+  };
+  snprintf(cxt->username, sizeof(cxt->username), "%s", member->user->username);
+  snprintf(cxt->token, sizeof(cxt->token), "%s", interaction->token);
 
-  /* create user channel */
+  /* assign channel owner role to user */
   discord_async_next(ceebot, &(struct discord_async_attr){
-                               .done = &on_rubberduck_channel_create,
-                               .data = user_id,
-                               .cleanup = &free });
-  discord_create_guild_channel(
-    ceebot, primitives->guild_id,
-    &(struct discord_create_guild_channel_params){
-      .name = member->user->username,
-      .permission_overwrites =
-        (struct discord_overwrite *[]){
-          /* give read/write permission for user */
-          &(struct discord_overwrite){
-            .id = *user_id,
-            .type = 1,
-            .allow = PERMS_READ | PERMS_WRITE,
-          },
-          /* give read/write permission for @helper */
-          &(struct discord_overwrite){
-            .id = primitives->roles.helper_id,
-            .type = 0,
-            .allow = PERMS_READ | PERMS_WRITE,
-          },
-          /* hide it from @watcher only if 'priv' has been set */
-          &(struct discord_overwrite){
-            .id = primitives->roles.watcher_id,
-            .type = 0,
-            .allow = priv ? 0 : PERMS_READ,
-          },
-          /* give write permissions to @everyone (not read) */
-          &(struct discord_overwrite){
-            .id = primitives->guild_id,
-            .type = 0,
-            .deny = PERMS_READ,
-            .allow = PERMS_WRITE,
-          },
-          NULL, /* END OF OVERWRITE LIST */
-        },
-      .parent_id = primitives->category_id,
-    },
-    NULL);
+                               .done = &done_role_add,
+                               .fail = &fail_role_add,
+                               .data = cxt,
+                             });
+  discord_add_guild_member_role(ceebot, primitives->guild_id, member->user->id,
+                                primitives->roles.rubberduck_id);
 
-  params->data->content = "Your channel will be created shortly";
+  params->type =
+    DISCORD_INTERACTION_CALLBACK_DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE;
 }

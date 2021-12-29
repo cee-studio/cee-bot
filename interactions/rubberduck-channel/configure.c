@@ -11,6 +11,8 @@ struct context {
   u64_snowflake_t user_id;
   /** the client's application id */
   u64_snowflake_t application_id;
+  /** user's rubberduck channel */
+  u64_snowflake_t channel_id;
   /** the interaction token */
   char token[256];
   /** whether rubberduck channel is private */
@@ -18,10 +20,48 @@ struct context {
 };
 
 static void
-rubberduck_channel_modify(struct discord *ceebot,
-                          struct discord_async_ret *ret)
+done_edit_permissions(struct discord *ceebot, struct discord_async_ret *ret)
 {
-  struct discord_edit_original_interaction_response_params params = { 0 };
+  struct context *cxt = ret->data;
+  char diagnosis[256];
+
+  snprintf(diagnosis, sizeof(diagnosis),
+           "Completed action targeted to <#%" PRIu64 ">.", cxt->channel_id);
+
+  discord_async_next(ceebot, NULL);
+  discord_edit_original_interaction_response(
+    ceebot, cxt->application_id, cxt->token,
+    &(struct discord_edit_original_interaction_response_params){
+      .content = diagnosis,
+    },
+    NULL);
+
+  free(cxt);
+}
+
+static void
+fail_edit_permissions(struct discord *ceebot, struct discord_async_err *err)
+{
+  struct context *cxt = err->data;
+  char diagnosis[256];
+
+  snprintf(diagnosis, sizeof(diagnosis),
+           "Failed action targeted to <#%" PRIu64 ">.", cxt->channel_id);
+
+  discord_async_next(ceebot, NULL);
+  discord_edit_original_interaction_response(
+    ceebot, cxt->application_id, cxt->token,
+    &(struct discord_edit_original_interaction_response_params){
+      .content = diagnosis,
+    },
+    NULL);
+
+  free(cxt);
+}
+
+static void
+done_get_channel(struct discord *ceebot, struct discord_async_ret *ret)
+{
   struct ceebot_primitives *primitives = discord_get_data(ceebot);
   const struct discord_channel *channel = ret->ret;
   struct context *cxt = ret->data;
@@ -29,25 +69,32 @@ rubberduck_channel_modify(struct discord *ceebot,
   if (!is_user_rubberduck_channel(channel, primitives->category_id,
                                   cxt->user_id))
   {
-    params.content = "Couldn't complete operation. Make sure to use command "
-                     "from your channel.";
-  }
-  else {
-    /* edit user channel */
     discord_async_next(ceebot, NULL);
-    discord_edit_channel_permissions(
-      ceebot, channel->id, primitives->roles.watcher_id,
-      &(struct discord_edit_channel_permissions_params){
-        .type = 0,
-        .allow = cxt->priv ? 0 : PERMS_READ,
-      });
+    discord_edit_original_interaction_response(
+      ceebot, cxt->application_id, cxt->token,
+      &(struct discord_edit_original_interaction_response_params){
+        .content = "Couldn't complete operation. Make sure to use "
+                   "`/mycommand` from your channel" },
+      NULL);
 
-    params.content = "Channel visibility has been changed succesfully";
+    free(cxt);
+    return;
   }
 
-  discord_async_next(ceebot, NULL);
-  discord_edit_original_interaction_response(ceebot, cxt->application_id,
-                                             cxt->token, &params, NULL);
+  cxt->channel_id = channel->id;
+
+  /* edit user channel */
+  discord_async_next(ceebot, &(struct discord_async_attr){
+                               .done = &done_edit_permissions,
+                               .fail = &fail_edit_permissions,
+                               .data = cxt,
+                             });
+  discord_edit_channel_permissions(
+    ceebot, channel->id, primitives->roles.watcher_id,
+    &(struct discord_edit_channel_permissions_params){
+      .type = 0,
+      .allow = cxt->priv ? 0 : PERMS_READ,
+    });
 }
 
 void
@@ -80,9 +127,9 @@ react_rubberduck_channel_configure(
   cxt->priv = (0 == strcmp(visibility, "private"));
 
   discord_async_next(ceebot, &(struct discord_async_attr){
-                               .done = &rubberduck_channel_modify,
-                               .data = cxt,
-                               .cleanup = &free,
+                               .done = &done_get_channel,
+                               .fail = &fail_edit_permissions,
+                               .data = cxt
                              });
   discord_get_channel(ceebot, interaction->channel_id, NULL);
 

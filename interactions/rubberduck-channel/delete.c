@@ -16,10 +16,46 @@ struct context {
 };
 
 static void
-rubberduck_channel_delete(struct discord *ceebot,
-                          struct discord_async_ret *ret)
+done_delete_channel(struct discord *ceebot, struct discord_async_ret *ret)
 {
-  struct discord_edit_original_interaction_response_params params = { 0 };
+  struct ceebot_primitives *primitives = discord_get_data(ceebot);
+  struct context *cxt = ret->data;
+
+  /* remove rubberduck role from user */
+  discord_async_next(ceebot, NULL);
+  discord_remove_guild_member_role(ceebot, primitives->guild_id, cxt->user_id,
+                                   primitives->roles.rubberduck_id);
+
+  discord_async_next(ceebot, NULL);
+  discord_edit_original_interaction_response(
+    ceebot, cxt->application_id, cxt->token,
+    &(struct discord_edit_original_interaction_response_params){
+      .content = "Succesfully deleted channel.",
+    },
+    NULL);
+
+  free(cxt);
+}
+
+static void
+fail_delete_channel(struct discord *ceebot, struct discord_async_err *err)
+{
+  struct context *cxt = err->data;
+
+  discord_async_next(ceebot, NULL);
+  discord_edit_original_interaction_response(
+    ceebot, cxt->application_id, cxt->token,
+    &(struct discord_edit_original_interaction_response_params){
+      .content = "Couldn't delete channel, please contact our staff.",
+    },
+    NULL);
+
+  free(cxt);
+}
+
+static void
+done_get_channel(struct discord *ceebot, struct discord_async_ret *ret)
+{
   struct ceebot_primitives *primitives = discord_get_data(ceebot);
   const struct discord_channel *channel = ret->ret;
   struct context *cxt = ret->data;
@@ -27,28 +63,25 @@ rubberduck_channel_delete(struct discord *ceebot,
   if (!is_user_rubberduck_channel(channel, primitives->category_id,
                                   cxt->user_id))
   {
-    params.content = "Couldn't complete operation. Make sure to use command "
-                     "from your channel.";
-  }
-  else {
-    /* delete user channel */
     discord_async_next(ceebot, NULL);
-    discord_delete_channel(ceebot, channel->id, NULL);
+    discord_edit_original_interaction_response(
+      ceebot, cxt->application_id, cxt->token,
+      &(struct discord_edit_original_interaction_response_params){
+        .content = "Couldn't complete operation. Make sure to use "
+                   "`/mycommand` from your channel",
+      },
+      NULL);
 
-    /* remove rubberduck role from user */
-    discord_async_next(ceebot, NULL);
-    discord_remove_guild_member_role(ceebot, primitives->guild_id,
-                                     cxt->user_id,
-                                     primitives->roles.rubberduck_id);
-
-    log_info("Remove rubberduck role from %" PRIu64, cxt->user_id);
-
-    params.content = "Channel has been deleted succesfully";
+    free(cxt);
+    return;
   }
 
-  discord_async_next(ceebot, NULL);
-  discord_edit_original_interaction_response(ceebot, cxt->application_id,
-                                             cxt->token, &params, NULL);
+  discord_async_next(ceebot, &(struct discord_async_attr){
+                               .done = &done_delete_channel,
+                               .fail = &fail_delete_channel,
+                               .data = cxt,
+                             });
+  discord_delete_channel(ceebot, channel->id, NULL);
 }
 
 void
@@ -85,14 +118,14 @@ react_rubberduck_channel_delete(
   struct context *cxt = malloc(sizeof *cxt);
   *cxt = (struct context){
     .user_id = member->user->id,
-    .application_id = interaction->application_id
+    .application_id = interaction->application_id,
   };
   snprintf(cxt->token, sizeof(cxt->token), "%s", interaction->token);
 
   discord_async_next(ceebot, &(struct discord_async_attr){
-                               .done = &rubberduck_channel_delete,
+                               .done = &done_get_channel,
+                               .fail = &fail_delete_channel,
                                .data = cxt,
-                               .cleanup = &free,
                              });
   discord_get_channel(ceebot, interaction->channel_id, NULL);
 

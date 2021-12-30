@@ -26,14 +26,6 @@ done_delete_channel(struct discord *ceebot, struct discord_async_ret *ret)
   discord_remove_guild_member_role(ceebot, primitives->guild_id, cxt->user_id,
                                    primitives->roles.rubberduck_id);
 
-  discord_async_next(ceebot, NULL);
-  discord_edit_original_interaction_response(
-    ceebot, cxt->application_id, cxt->token,
-    &(struct discord_edit_original_interaction_response_params){
-      .content = "Succesfully deleted channel.",
-    },
-    NULL);
-
   free(cxt);
 }
 

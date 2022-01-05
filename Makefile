@@ -9,10 +9,10 @@ OBJS := $(SRC:$(INTERACTIONSDIR)/%.c=$(OBJDIR)/%.o)
 MAIN := main
 
 CFLAGS := -pthread -Wall -Wextra -O0 -g -I$(INTERACTIONSDIR)
-LDFLAGS := -ldiscord -lcurl -lcrypto -lm
+LDFLAGS := -ldiscord -lcurl
 
 $(OBJDIR)/%.o: $(INTERACTIONSDIR)/%.c
-	$(CC) $(CFLAGS) -c -o $@ $< $(LDFLAGS)
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 all: $(MAIN)
 

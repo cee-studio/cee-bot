@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <string.h>
 #include <inttypes.h> /* PRIu64 */
 
@@ -20,7 +21,7 @@ struct context {
    *  - PERMS_WRITE: User will have his write access to channel revoked
    *  - 0: User won't be denied write access
    */
-  enum discord_bitwise_permission_flags perms;
+  u64_bitmask_t perms;
 };
 
 static void
@@ -156,7 +157,7 @@ react_rubberduck_channel_action(
 {
   struct discord_guild_member *member = interaction->member;
 
-  enum discord_bitwise_permission_flags perms;
+  u64_bitmask_t perms;
   u64_snowflake_t target_id = 0ULL;
 
   if (options)
@@ -164,15 +165,19 @@ react_rubberduck_channel_action(
       char *name = options[i]->name;
 
       if (0 == strcmp(name, "mute")) {
-        target_id = get_mute_target(interaction->member, options[i]->options);
+        target_id = get_mute_target(member, options[i]->options);
         perms = PERMS_WRITE;
       }
       else if (0 == strcmp(name, "unmute")) {
-        target_id =
-          get_unmute_target(interaction->member, options[i]->options);
+        target_id = get_unmute_target(member, options[i]->options);
         perms = 0;
       }
     }
+
+  if (target_id == member->user->id) {
+    params->data->content = "You can't mute yourself!";
+    return;
+  }
 
   struct context *cxt = malloc(sizeof *cxt);
   *cxt = (struct context){
